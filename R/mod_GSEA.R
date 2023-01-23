@@ -67,11 +67,11 @@ mod_GSEA_server <- function(id,inputParameter){
                  box(width = 12,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
                  DT::dataTableOutput(ns('tableau'))%>% withSpinner())
         ),tabPanel("Plot", box(width = 6,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('char-simple')),
-                   uiOutput(ns('pathId')),  plotlyOutput(ns('dotplot'))%>% withSpinner()),
+                     plotlyOutput(ns('dotplot'))%>% withSpinner()),
 
                    box(width = 6,status = 'success',solidHeader = TRUE,title=h1('Gseaplot',icon('char-simple')),
 
-                   plotOutput(ns('gseaplot'))%>% withSpinner()
+                   uiOutput(ns('pathId')),plotOutput(ns('gseaplot'))%>% withSpinner()
         )),
         ))
 
