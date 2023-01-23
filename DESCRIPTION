@@ -1,0 +1,51 @@
+Package: testGolem
+Title: An Amazing Shiny App
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Audrey",
+           family = "Beaufils",
+           role = c("aut", "cre"),
+           email = "audrey.beaufils@univ-rouen.fr")
+Description: This package runs Differential Analysis and Enrrichment Analysis of brut count.
+License: What license is it under?
+Imports: 
+    attempt,
+    config (>= 0.3.1),
+    DT,
+    glue,
+    golem (>= 0.3.2),
+    htmltools,
+    shiny (>= 1.7.1),
+    plotly,
+    ggplot2,
+    DESeq2,
+    clusterProfiler,
+    colourpicker,
+    DOSE,
+    enrichplot,
+    GO.db,
+    shinycssloaders,
+    pathview,
+    shinyFiles,
+    png,
+    ReactomePA,
+    shinydashboard,
+    shinyWidgets,
+    shinyBS,
+    shinyWidgets,
+    BiocManager,
+    aod,
+    stringr,
+    stats,
+    sgof,
+    reshape2,
+    heatmaply,
+    pkgload
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.1.2
+Suggests: 
+    spelling,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Language: en-US
