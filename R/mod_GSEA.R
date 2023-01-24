@@ -84,7 +84,7 @@ mod_GSEA_server <- function(id,inputParameter){
     # Fonction chargant la librairie correspondante à l'organisme choisi
     organism<- reactive({
       organism = inputParameter$orDb
-      BiocManager::install(organism, character.only = TRUE,force=TRUE)
+     
       library(organism, character.only = TRUE)
 
       return(organism)
@@ -98,7 +98,7 @@ mod_GSEA_server <- function(id,inputParameter){
       req(inputParameter$fileOr)
 
 
-      df = read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header,sep=inputParameter$sep)
+      df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
 
       return(df)
 
@@ -112,15 +112,22 @@ mod_GSEA_server <- function(id,inputParameter){
       organism=organism()
 
 
-
-      original_gene_list <- df$log2FoldChange
-      names(original_gene_list) <- df$X
+      if(inputParameter$gsea_order=="log2FC")
+      {original_gene_list <- df$log2FC}
+      if(inputParameter$gsea_order=="pval")
+      {original_gene_list <- df$padj}
+      if(inputParameter$gsea_order=="Stat")
+      {original_gene_list <- df$stat}
+      print(inputParameter$row.names)
+      print(df[,inputParameter$row.names])
+      row.names(df)=df[,inputParameter$row.names]
+      names(original_gene_list) <- row.names(df)
       gene_list<-na.omit(original_gene_list)
       gene_list = sort(gene_list, decreasing = TRUE)
 
       gse <- gseGO(geneList=gene_list,
                    ont =input$onto,
-                   keyType = "ENSEMBL",
+                   keyType = 'ENSEMBL',
                    minGSSize = 3,
                    maxGSSize = 800,
                    pvalueCutoff =input$pvalCutOff,
@@ -128,18 +135,18 @@ mod_GSEA_server <- function(id,inputParameter){
                    OrgDb = organism,
                    pAdjustMethod = inputParameter$pAdjMethod)
 
-
-      gse=simplify(
-        gse,
-        cutoff = 0.7,
-        by = "p.adjust",
-        select_fun = min,
-        measure = "Wang",
-        semData = NULL
-      )
-
+print('aaaaaaaaaaaaa')
+      #gse=simplify(
+       # gse,
+        #cutoff = 0.7,
+       # by = "p.adjust",
+        #select_fun = min,
+        #measure = "Wang",
+        #semData = NULL
+      #)
+print('bbbbbbbbbbbbbbbbb')
       gse=goFilter(gse,input$GoLevel)
-      print(gse)
+    print('ccccccccccccccccccccc')
       return(gse)
 
     }
@@ -189,7 +196,9 @@ mod_GSEA_server <- function(id,inputParameter){
 
     # Fonction renvoyant le tableau d'enrcihissement
     tabb <- reactive({
-      table= cbind(gg()$ID,gg()$Description,gg()$enrichmentScore,gg()$NES,gg()$pvalue,gg()$p.adjust,gg()$qvalue,gg()$rank)
+      table=gg()
+      print(head(table))
+      table= cbind(table$ID,table$Description,table$enrichmentScore,table$NES,table$pvalue,table$p.adjust,table$qvalue,table$rank)
       colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank')
   return(data.frame(table))
 
