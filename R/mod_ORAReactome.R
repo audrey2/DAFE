@@ -34,13 +34,19 @@ mod_ORAReactome_server <- function(id,inputParameter){
           h1('ORA Reactome settings',icon('cogs')),
           hr(),
           fluidRow(
-            column(width = 3.5),
-            column(width = 3,
-               sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from input ",
-                         min = 0, max =0.1, value = 0.05,step=0.01)
-            ),
+            column(width=2),
             column(width=3,
-                selectInput(ns("DEG")," Choose element",choices=c('both','over','under')),
+
+              sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from input ",
+                          min = 0, max =0.1, value = 0.05,step=0.01),
+
+            ),
+            column(width=3,sliderInput(ns("log2FC"),label="LOg2FC fold change ",min=0,max=5,value=1,step=0.1)
+                   
+
+            ),
+            column(width=3
+                   
             )
           )
 
@@ -69,56 +75,55 @@ mod_ORAReactome_server <- function(id,inputParameter){
 
     # Fonction renvoyant un objet enrichpathway
     geneListR<-reactive({
-      req(inputParameter$fileOr)
-      df= read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header,sep=inputParameter$sep)
-      if(input$DEG=='over'){df=subset(df,log2FoldChange >0)}
-      if(input$DEG=='under'){df=subset(df,log2FoldChange <0)}
+  req(inputParameter$fileOr)
 
-      organism = inputParameter$orDb
-      original_gene_list <- df$log2FoldChange
+      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
+      organism=inputParameter$orDb
+      if(inputParameter$ora_order=="overexpressed"){print('over')
+      df=subset(df,log2FC >0)
+      df=subset(df,padj< input$pvalCutOff)}
+      if(inputParameter$ora_order=="underexpressed"){print('under')
+      print(head(df))
+      df=subset(df,log2FC <0)
+      print(head(df))
+      df=subset(df, padj < input$pvalCutOff)
+       print(head(df))}
+      if(inputParameter$ora_order=="both"){ df=subset(df, padj < input$pvalCutOff)}
+  
+      df$X=df[,inputParameter$row.names]
+ 
+      library(organism, character.only = TRUE)
+      original_gene_list <- df$log2FC
 
 
 
-      names(original_gene_list) <- df$X
+      names(original_gene_list) <- df[,inputParameter$row.names]
 
       ids<-bitr(names(original_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
+        # remove duplicate IDS (here I use "ENSEMBL", but it should be whatever was selected as keyType)
+        dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
 
-      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
-
-
+      # Create a new dataframe df2 which has only the genes which were successfully mapped using the bitr function above
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
 
+      # Create a new column in df2 with the corresponding ENTREZ IDs
       df2$Y = dedup_ids$ENTREZID
 
-      kegg_gene_list <- df2$log2FoldChange
+      kegg_gene_list <- df2$log2FC
 
       names(kegg_gene_list) <- df2$Y
 
       kegg_gene_list<-na.omit(kegg_gene_list)
+      kegg_genes <- names(kegg_gene_list)[abs(kegg_gene_list) > input$log2FC]
 
-      kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
+react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
+                                'org.Dr.eg.db'='zebrafish','org.Hs.eg.db'='human',
+                             'org.Sc.sgd.db'='yeast','org.Ce.eg.db'='celegans',
+                             'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat')
 
-      kegg_sig_genes_df = subset(df2, padj < 0.05)
-
-      kegg_genes <- kegg_sig_genes_df$log2FoldChange
-
-      names(kegg_genes) <- kegg_sig_genes_df$Y
-
-      kegg_genes <- na.omit(kegg_genes)
-
-      kegg_genes <- names(kegg_genes)[abs(kegg_genes) > 2]
-
-      kegg_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='dme','org.At.tair.db'='ath',
-                             'org.Dr.eg.db'='dre','org.Ss.eg.db'='ssc','org.Cf.eg.db'='cfa',
-                             'org.Ag.eg.db'='aga','org.EcSakai.eg.db'='ecs','org.Hs.eg.db'='hsa',
-                             'org.Sc.sgd.db'='sce','org.Ce.eg.db'='sko','org.Gg.eg.db'='gga',
-                             'org.EcK12.eg.db'='eco','org.Pt.eg.db'='ptr','org.Mxanthus.db'='mxa',
-                             'org.Mm.eg.db'='mmu','org.Rn.eg.db'='rno','org.Bt.eg.db'='bta',
-                             'org.Mmu.eg.db'='mvv','org.Xl.eg.db'='xla','org.Pf.plasmo.db'='pfa')
-
-
+    
       kk= enrichPathway(
-        gene=kegg_genes,pvalueCutoff = 0.05, readable=TRUE,organism="fly"
+        gene=kegg_genes,pvalueCutoff = input$pvalCutOff, readable=TRUE,organism=react_organism
 
        )
 
@@ -127,30 +132,52 @@ mod_ORAReactome_server <- function(id,inputParameter){
     })
 
 
-    kge<- reactive({
-      df= read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header,sep=inputParameter$sep)
-      if(input$DEG=='over'){df=subset(df,log2FoldChange >0)}
-      if(input$DEG=='under'){df=subset(df,log2FoldChange <0)}
+   kge<- reactive({
+       req(inputParameter$fileOr)
 
-      organism =inputParameter$orDb
-      original_gene_list <- df$log2FoldChange
+      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
+      organism=inputParameter$orDb
+      if(inputParameter$ora_order=="overexpressed"){print('over')
+      df=subset(df,log2FC >0)
+      df=subset(df,padj< input$pvalCutOff)}
+      if(inputParameter$ora_order=="underexpressed"){print('under')
+      print(head(df))
+      df=subset(df,log2FC <0)
+      print(head(df))
+      df=subset(df, padj < input$pvalCutOff)
+       print(head(df))}
+      if(inputParameter$ora_order=="both"){ df=subset(df, padj < input$pvalCutOff)}
+  
+      df$X=df[,inputParameter$row.names]
+      
+   
+      library(organism, character.only = TRUE)
+      original_gene_list <- df$log2FC
 
-      names(original_gene_list) <- df$X
+
+
+      names(original_gene_list) <- df[,inputParameter$row.names]
 
       ids<-bitr(names(original_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
-
+        # remove duplicate IDS (here I use "ENSEMBL", but it should be whatever was selected as keyType)
       dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
 
+      # Create a new dataframe df2 which has only the genes which were successfully mapped using the bitr function above
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
 
+      # Create a new column in df2 with the corresponding ENTREZ IDs
       df2$Y = dedup_ids$ENTREZID
 
-      kegg_gene_list <- df2$log2FoldChange
-
+      kegg_gene_list <- df2$log2FC
 
       names(kegg_gene_list) <- df2$Y
 
       kegg_gene_list<-na.omit(kegg_gene_list)
+
+      
+
+      
+  
 
 
       kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
@@ -163,8 +190,6 @@ mod_ORAReactome_server <- function(id,inputParameter){
 
 
     })
-
-
 
 # Fonctions renvoyant les graphiques à l'ui
     output$dotplotR <- renderPlotly({
@@ -183,7 +208,7 @@ mod_ORAReactome_server <- function(id,inputParameter){
       ggplotly(barplot(gbb,
 
                        showCategory = 10,
-                       title = "GO Biological Pathways",
+                       title = "Barplot Recatome Pathways",
                        font.size = 8))
 
     })
