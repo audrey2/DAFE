@@ -60,77 +60,91 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       }
       return(LL)
     })
+organism<- reactive({
+      organism = inputParameter$orDb
+     
+      library(organism, character.only = TRUE)
+
+      return(organism)
+    })
 
 
     shinyDirChoose(input, 'folder2', root=c(root='~'), filetypes=c('png', 'txt'))
 
+
+
+    kge<- reactive({
+      req(inputParameter$fileOr)
+      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
+      
+      if(inputParameter$gsea_order=="log2FC")
+      {kegg_gene_list <- df$log2FC}
+      if(inputParameter$gsea_order=="pval")
+      {kegg_gene_list <- df$padj}
+      if(inputParameter$gsea_order=="Stat")
+      {kegg_gene_list <- df$stat}
+      df$X=df[,inputParameter$row.names]
+      names(kegg_gene_list)=df$X
+
+      organism=organism()
+      print(organism)
+      ids<-bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
+        # remove duplicate IDS (here I use "ENSEMBL", but it should be whatever was selected as keyType)
+dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
+
+# Create a new dataframe df2 which has only the genes which were successfully mapped using the bitr function above
+df2 = df[df$X %in% dedup_ids$ENSEMBL,]
+
+# Create a new column in df2 with the corresponding ENTREZ IDs
+df2$Y = dedup_ids$ENTREZID
+
+# Create a vector of the gene unuiverse
+ if(inputParameter$gsea_order=="log2FC")
+      {kegg_gene_list <- df2$log2FC}
+      if(inputParameter$gsea_order=="pval")
+      {kegg_gene_list <- df2$padj}
+      if(inputParameter$gsea_order=="Stat")
+      {kegg_gene_list <- df2$stat}
+
+
+# Name vector with ENTREZ ids
+names(kegg_gene_list) <- df2$Y
+
+# omit any NA values 
+kegg_gene_list<-na.omit(kegg_gene_list)
+
+# sort the list in decreasing order (required for clusterProfiler)
+kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
+
+    return(kegg_gene_list)
+
+
+    })
     # Fonction renvoyant un objet gsepathway
     geneListR<-reactive({
       req(inputParameter$fileOr)
-      df = read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header, sep=inputParameter$sep)
-
-      organism = inputParameter$orDb
-      original_gene_list <- df$log2FoldChange
-      names(original_gene_list) <- df$X
-      ids<-bitr(names(original_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
-      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
-      df2 = df[df$X %in% dedup_ids$ENSEMBL,]
-      df2$Y = dedup_ids$ENTREZID
-      react_gene_list <- df2$log2FoldChange
-
-      names(react_gene_list) <- df2$Y
-      react_gene_list<-na.omit(react_gene_list)
-      react_gene_list = sort(react_gene_list, decreasing = TRUE)
-      react_sig_genes_df = subset(df2, padj < 0.05)
-      react_genes <- react_sig_genes_df$log2FoldChange
-      names(react_genes) <- react_sig_genes_df$Y
-      react_genes <- na.omit(react_genes)
-      react_genes <- names(react_genes)[abs(react_genes) > 2]
+     
+Reactome_gene_list = kge()
 
 
 
-      kk=gsePathway(react_gene_list,
+react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
+                                'org.Dr.eg.db'='zebrafish','org.Hs.eg.db'='human',
+                             'org.Sc.sgd.db'='yeast','org.Ce.eg.db'='celegans',
+                             'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat')
+
+
+      kk=gsePathway(Reactome_gene_list,
                  pvalueCutoff = 0.2,
                  pAdjustMethod = "BH",
-                 verbose = FALSE)
+                 verbose = FALSE,organism=react_organism)
 
       return(kk)
 
     })
 
 
-    kge<- reactive({
-      df= read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header,sep=inputParameter$sep)
-
-      organism = inputParameter$orDb
-      original_gene_list <- df$log2FoldChange
-
-      names(original_gene_list) <- df$X
-
-      ids<-bitr(names(original_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
-
-      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
-
-
-      df2 = df[df$X %in% dedup_ids$ENSEMBL,]
-
-      df2$Y = dedup_ids$ENTREZID
-
-      react_gene_list <- df2$log2FoldChange
-
-      names(react_gene_list) <- df2$Y
-
-      react_gene_list<-na.omit(react_gene_list)
-
-      react_gene_list = sort(react_gene_list, decreasing = TRUE)
-      duplicated_names <- duplicated(names(react_gene_list))
-
-      react_gene_list=react_gene_list[!duplicated_names]
-
-      return(react_gene_list)
-
-
-    })
+    
 
 
 
@@ -144,7 +158,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
     })
 
-   output$gseaplotKegg <- renderPlotly(ggplotly(gseaplot(kge(), by = "all", title = gene_list_kegg()$Description[as.numeric(PATHID())], geneSetID =as.numeric( PATHID()))))
+   output$gseaplotKegg <- renderPlotly(ggplotly(gseaplot(kge(), by = "all", title = gene_list_Reactome()$Description[as.numeric(PATHID())], geneSetID =as.numeric( PATHID()))))
 
 
    # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
@@ -172,8 +186,8 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
     # Fonction renvoyant le tableau de resultat de l'enrichissement
     tabb <- reactive({
-      table= cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue,geneListR()$rank,geneListR()$leading_edge,geneListR()$core_enrichment)
-      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank','leadingEdge','coreEnrichment')
+      table= cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue,geneListR()$rank)
+      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank')
       return(data.frame(table))
 
     })
