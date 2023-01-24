@@ -28,7 +28,7 @@ mod_Dispersion_analysis_ui <- function(id){
                               tags$h3("Option of treshold"),
                               sliderInput(ns("ts_FC"), label = "log2 FoldChange  cutoff from input",
                                           min = 0, max = 5, value = 1,step=0.1),
-                              sliderInput(ns("ts_padj"),label = "p-Value cutoff from input ",
+                              sliderInput(ns("ts_padj"),label = "p-Value cutoff from output ",
                                           min = 0, max =0.1, value = 0.01,step=0.01))),column(width=11,
 
                plotlyOutput(ns("volcano"))%>% withSpinner()))),

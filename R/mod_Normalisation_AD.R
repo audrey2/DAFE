@@ -15,8 +15,8 @@ mod_Normalisation_AD_ui <- function(id){
 
       fluidRow(
         column(width=3,
-          selectInput(ns("choixTest"),"Choose the test",choices=c("Wald","LRT")),
-          bsTooltip(ns("choixTest"), title = "Hypothese Testing <br> Wald Test ( default) pairwise comparisons <br> LRT which is used to identify any genes that show change in expression across the different levels "),
+          selectInput(ns("choixTest"),label=h4("Choose the test", bsButton(ns("q2"),label="",icon = icon("question"), style = "info", size = "extra-small")),choices=c("Wald","LRT")),
+          bsTooltip(ns("q2"), title = "Hypothese Testing <br> Wald Test ( default) pairwise comparisons <br> LRT which is used to identify any genes that show change in expression across the different levels "),
         ),
         column(width=3,
           selectInput(ns("choixFitType"),label=h4("Choose the Fit type",
@@ -34,8 +34,8 @@ mod_Normalisation_AD_ui <- function(id){
           uiOutput(ns("cond1")),
         ),
         column(width=3,
-          selectInput(ns("choixPadj"),"choose the methode of padj", choices=c('holm', 'hochberg', 'hommel', 'bonferroni', 'BH', 'BY', 'fdr', 'none')),
-          bsTooltip(ns("choixPadj"),title="the method to use for adjusting pvalue")
+          selectInput(ns("choixPadj"),label=h4("Choose the methode of padj", bsButton(ns("q3"),label="",icon = icon("question"), style = "info", size = "extra-small")), choices=c('holm', 'hochberg', 'hommel', 'bonferroni', 'BH', 'BY', 'fdr', 'none')),
+          bsTooltip(ns("q3"),title="the method to use for adjusting pvalue")
         ),
       column(width=9),
       column(width=3,
@@ -44,7 +44,7 @@ mod_Normalisation_AD_ui <- function(id){
     ),
   ),
 
-  tabBox(width=12,height="600px",
+  tabBox(width=12,height="1200px",
   id="tabBox",
     tabPanel("Plot ",
 
@@ -85,7 +85,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
       choix=heatCondition()
       L=c()
-      L[[1]]= selectInput(ns("selectCond1"), label = "Choose condition to observe ",
+      L[[1]]= selectInput(ns("selectCond1"), label = h4("Choose condition to observe"),
                           choices = choix[2:length(choix)],
                           selected=1)
 

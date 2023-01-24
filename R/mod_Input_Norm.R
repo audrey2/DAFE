@@ -75,10 +75,8 @@ mod_Input_Norm_server <- function(id,inputNorm){
     # Fonction affichant l'interface utilisateur en fonction des paramètre spécifié
     output$table_file <- renderUI({
     L=c()
-        L[[1]]= box(width=12,style='margin-top: 10px;padding: 10px;',
-                    br(),
-                    h3("Table : View of all counts concatenate"),
-                    br(),
+        L[[1]]= box(width=12,style='margin-top: 10px;padding: 10px;',status='primary',title = h1('Table : View of all counts concatenate',icon('table')),solidHeader = TRUE,
+
                     DT::dataTableOutput(ns("viewAllComptage"))
         )
 
