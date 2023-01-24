@@ -15,8 +15,8 @@ mod_parameter_EA_ui <- function(id){
 
 fluidRow(
 
-  column(width=3,fileInput(ns("fileOr"),"BrowseFile"),checkboxInput(ns("header"), "Header", TRUE)  ),
-  column(width=3, selectInput(ns("sep"),"Select the separator of files",choices=list("Comma"=',',"Tabulation"='\t',"Semicolon"=';'),selected = ",")),
+  column(width=3,fileInput(ns("fileOr"),"BrowseFile"),numericInput(ns("row.names"), "Column number of gene ID", min = 1, max = 10, step = 1, value = 1)),
+  column(width=3, selectInput(ns("sep"),"Select the separator of files",choices=list("Comma"=',',"Tabulation"='\t',"Semicolon"=';'),selected = ","), selectInput(ns("keytype"),"Select the key type",choices=c('ENSEMBL','ENTREZID'))),
   column(width=3,
          selectInput(ns("orDb"),"choose the Organism DB", choices=c('Fly'='org.Dm.eg.db','Human'='org.Hs.eg.db','Mouse'='org.Mm.eg.db','Rat'='org.Rn.eg.db',
                                                                     'Arabidopsis'='org.At.tair.db','Yeast'='org.Sc.sgd.db',
@@ -29,7 +29,10 @@ fluidRow(
  #
   column(width=3,
 
-         selectInput(ns("pAdjMethod"),"Choose Padj Methode", choices=c( "none","holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr" ))),
+         selectInput(ns("pAdjMethod"),"Choose Padj Methode", choices=c( "none","holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr" )),
+         uiOutput(ns("subsetData"))
+         
+         ),
 
 
 )),
@@ -52,14 +55,21 @@ mod_parameter_EA_server <- function(id){
       # reading in data from deseq2
 
       req(input$fileOr)
-      df = read.csv(input$fileOr[1,'datapath'], header=input$header,sep=input$sep)
+      df = read.csv(input$fileOr[1,'datapath'], header=TRUE,sep=input$sep)
 
 
       return(df)
 
     })
 
-
+    output$subsetData<- renderUI({
+      L=c()
+        if(input$Gsea_ORA=='ORA'){
+          L=selectInput(ns("ora_order"),"Choose data to keep", choices=c( "underexpressed","overexpressed", "both" ))}
+      else{L=selectInput(ns("gsea_order"),"Choose how sort data", choices=c( "pval","log2FC", "Stat" ))}
+      return(L)
+    })
+          
     # Fonction renvoyant à l'ui le tableau charger
     output$file <- DT::renderDataTable(DT::datatable(
       { df()},
