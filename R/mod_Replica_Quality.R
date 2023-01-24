@@ -23,14 +23,17 @@ mod_Replica_Quality_ui <- function(id){
       ),
     ),
     br(),br(),br(),br(),
-    box(width=12,title=h1('Heatmap',icon('chart-simple')),status = 'success',solidHeader = TRUE,
+    box(width=12,title=h1('Heatmap',icon('chart-simple')),status = 'success',solidHeader = TRUE,height='800px',
       br(),
+      column(width=3,
       dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',
                      tags$h3("Personnalize"),
                      column(width=12, colourInput(ns("col1"), "Choose first color","#ade6f4")),
-                     column(width=12, colourInput(ns("col2"), "Choose second color","#45d7b7"))),
+                     column(width=12, colourInput(ns("col2"), "Choose second color","#45d7b7")),
+                     actionButton(ns("goHeat2"),"Start",class="buttS",icon("play")))),
       br(),
-      plotlyOutput(ns("heatMap"))
+      column(width=6,      plotlyOutput(ns("heatMap"))),
+      column(width=3)
     )
   )
 }
@@ -126,8 +129,10 @@ mod_Replica_Quality_server <- function(id,inputNorm){
 
 
     # Fonction qui creer une heatmap de distance après go de l'utilisateur
-    heat<-eventReactive(input$goHeat,{
-
+    heat<-eventReactive((input$goHeat | input$goHeat2),{
+      validate(
+        need(input$selectKeep != "", "Please click on start")
+      )
       withProgress(message = "Plotting heatMap ...", {
 
         chosenReplica = as.numeric(input$selectKeep) +1
@@ -140,13 +145,15 @@ mod_Replica_Quality_server <- function(id,inputNorm){
         distance = dist(dataT, method = "euclidian")
         matrice = as.matrix(distance)
 
-        figure = heatmaply(matrice,colors=cols)
+        figure = heatmaply(matrice,colors=cols)%>% layout(height = 700, width = 800)
 
       })
 
       return(figure)
     })
+    
 
+    
     # Affichage UI Heatmap
     output$heatMap <- renderPlotly(heat())
 
