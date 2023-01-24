@@ -42,7 +42,7 @@ mod_ORA_server <- function(id,inputParameter){
               column(width=3,
                 selectInput(ns("onto"),"Choose GO annotation", choices=c("Biological Process"='BP', "Cellular Component"="CC","Molecular Function"="MF","ALL"="ALL" ))),
               column(width=3,
-                sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from input ",
+                sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
                             min = 0, max =0.1, value = 0.05,step=0.01)),
               column(width=3,
                 sliderInput(ns("GoLevel"),label="Select Go Level",min=1,max=7,value=4,step=1)),
@@ -84,30 +84,41 @@ mod_ORA_server <- function(id,inputParameter){
 
       req(inputParameter$fileOr)
 
-      df=read.csv(inputParameter$fileOr[1,'datapath'], header=inputParameter$header,sep=inputParameter$sep)
-      if(input$DEG=='over'){df=subset(df,log2FoldChange >0)}
-      if(input$DEG=='under'){df=subset(df,log2FoldChange <0)}
-
+      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism=inputParameter$orDb
-      BiocManager::install(organism, character.only = TRUE)
+      if(inputParameter$ora_order=="overexpressed"){print('over')
+      df=subset(df,log2FC >0)}
+      if(inputParameter$ora_order=="underexpressed"){print('under')
+      print(dim(df))
+      df=subset(df,log2FC <0)
+      print(dim(df))}
+  
+      
+   
       library(organism, character.only = TRUE)
+      row.names(df)=df[,inputParameter$row.names]
 
-      original_gene_list <- df$log2FoldChange
-      names(original_gene_list) <- df$X
-      gene_list<-na.omit(original_gene_list)
-      gene_list = sort(gene_list, decreasing = TRUE)
       sig_genes_df = subset(df, padj < 0.05)
-      genes <- sig_genes_df$log2FoldChange
-      names(genes) <- sig_genes_df$X
-      genes <- na.omit(genes)
-      genes <- names(genes)[abs(genes) > 2]
+
+# From significant results, we want to filter on log2fold change
+genes <- sig_genes_df$log2FC
+
+# Name the vector
+names(genes) <-sig_genes_df[,inputParameter$row.names]
+
+# omit NA values
+genes <- na.omit(genes)
+
+# filter on min log2fold change (log2FoldChange > 2)
+genes <- names(genes)[abs(genes) > 2]
+
+
       go_enrich <- enrichGO(gene = genes,
-                            universe = names(gene_list),
                             OrgDb = organism,
-                            keyType = 'ENSEMBL',
+                            keyType = inputParameter$keytype,
                             readable = T,
-                            ont = "BP",
-                            pvalueCutoff = 0.05,
+                            ont = input$onto,
+                            pvalueCutoff = input$pvalCutOff,
                             qvalueCutoff = 0.10)
 
 
