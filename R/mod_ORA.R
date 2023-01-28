@@ -28,49 +28,69 @@ mod_ORA_server <- function(id,inputParameter){
     library(plotly)
     ns <- session$ns
 
+# UI OUTPUT
 
     #Fonction renvoyant l'ui si la méthode choisi est ORA
     output$condPanel<- renderUI({
       LL=c()
 
       if(inputParameter$Gsea_ORA=='ORA' ){
-        LL[[1]]=fluidRow(box(class='VIOLET',width = 12,
-
-              h1('ORA GO terms Settings',icon('cogs')),
-              hr(),
-              fluidRow(
-              column(width=3,
-                selectInput(ns("onto"),"Choose GO annotation", choices=c("Biological Process"='BP', "Cellular Component"="CC","Molecular Function"="MF","ALL"="ALL" ))),
-              column(width=3,
-                sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
-                            min = 0, max =0.1, value = 0.05,step=0.01)),
-              column(width=3,
-                sliderInput(ns("GoLevel"),label="Select Go Level",min=1,max=7,value=4,step=1)),
-              column(width=3,
-                selectInput(ns("DEG")," Choose element",choices=c('both','over','under'))),)
+        LL[[1]]=fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA GO terms settings',icon('gear')),          
+          fluidRow(
+            column(width=3,
+              sliderInput(ns("pvalI"),label = "p-Value cutoff from input ",
+                          min = 0, max =0.1, value = 0.05,step=0.01),
+              sliderInput(ns("log2I"),label = "Log2 Fold change cutoff from input ",
+                          min = 0, max =5, value = 2,step=0.5)
+            ),
+            column(width=3,
+              selectInput(ns("onto"),"Choose GO annotation", choices=c("Biological Process"='BP', "Cellular Component"="CC","Molecular Function"="MF","ALL"="ALL" )),
+              br(),sliderInput(ns("GoLevel"),label="Select Go Level",min=1,max=7,value=4,step=1)
+            ),
+            column(width=3,
+              sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
+                      min = 0, max =0.1, value = 0.05,step=0.01)
+            ),
+            column(width=3,
+              br(),br(),br(),br(),br(),br(),br(),br(),br(),
+              actionButton(ns("go"),"Start",class="buttS",icon("play"))
+            )
+          )
         ))
-
-
-      LL[[3]]=fluidRow(tabsetPanel(
-        tabPanel("Table",
-                 DT::dataTableOutput(ns('tableau'))%>% withSpinner()
-        ),tabPanel("Plot",
-                  uiOutput(ns('pathId')),h3('Dotplot'),  plotlyOutput(ns('dotplot'))%>% withSpinner(),h3('Goplot'),plotlyOutput(ns('goplot'))%>% withSpinner(),plotlyOutput(ns('barplot'))%>% withSpinner()
+        LL[[2]]=fluidRow(tabBox(width=12,height=NULL,
+          tabPanel("Table",
+            fluidRow(
+              column(width=12,
+                box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
+                  DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                )
+              )
+            )
+          ),
+          tabPanel("Plot",fluidRow(
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
+                uiOutput(ns('numberCategrory')),
+                plotlyOutput(ns('dotplot'))%>% withSpinner()
+              )
+            ),
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Barplot',icon('chart-simple')),
+                uiOutput(ns('numberCategrory2')),
+                plotlyOutput(ns('barplot'))%>% withSpinner()
+              )
+            ),
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Goplot',icon('chart-simple')),
+                plotlyOutput(ns('goplot'))%>% withSpinner()
+              )
+            )
+          ))
         ))
-      )
-}
-      return(LL)}
-    )
-    # Fonction renvoyant les différent GO terms significativement enrichi
-    choix <- reactive({
-      name=geneList()$ID
-      num  = c(1:length(name))
-      choiceTable = data.frame(name, num)
-      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
-      return(choix)
-
+      }
+      return(LL)
     })
-
+    
     # Fonction renvoyant à l'ui les différent GO terms significativement enrichi sous la forme d'un select input
     output$pathId <- renderUI({
 
@@ -78,50 +98,44 @@ mod_ORA_server <- function(id,inputParameter){
       return(L)
 
     })
+    # Fonction renvoyant à l'ui un slideerInput pour deteminer le nombre de categrories a afficher sur le dotPlot
+    output$numberCategrory <- renderUI({
+        numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
+    })
+
+    # Fonction renvoyant à l'ui un slideerInput pour deteminer le nombre de categrories a afficher sur le barPlot
+    output$numberCategrory2 <- renderUI({
+        numericInput(ns("numberCat2"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
+    })
+
+
+# FUNCTION
 
     # Fonction renvoyant un objet ORA enfonction des spécificité choisi
-    geneList<-function(){
+    geneList<-eventReactive(input$go,{
 
       req(inputParameter$fileOr)
 
-      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
+      df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism=inputParameter$orDb
-      if(inputParameter$ora_order=="overexpressed"){print('over')
-      df=subset(df,log2FC >0)}
-      if(inputParameter$ora_order=="underexpressed"){print('under')
-      print(dim(df))
-      df=subset(df,log2FC <0)
-      print(dim(df))}
-  
-      
+      if(inputParameter$ora_order=="overexpressed")   {df = subset(df, log2FC > 0)}
+      if(inputParameter$ora_order=="underexpressed")  {df = subset(df, log2FC < 0)}
    
       library(organism, character.only = TRUE)
-      row.names(df)=df[,inputParameter$row.names]
+      row.names(df) = df[,inputParameter$row.names]
+      sig_genes_df = subset(df, padj < input$pvalI)
+      genes = sig_genes_df$log2FC
+      names(genes) = sig_genes_df[,inputParameter$row.names]
+      genes = na.omit(genes)
+      genes = names(genes)[abs(genes) > input$log2I]
 
-      sig_genes_df = subset(df, padj < 0.05)
-
-# From significant results, we want to filter on log2fold change
-genes <- sig_genes_df$log2FC
-
-# Name the vector
-names(genes) <-sig_genes_df[,inputParameter$row.names]
-
-# omit NA values
-genes <- na.omit(genes)
-
-# filter on min log2fold change (log2FoldChange > 2)
-genes <- names(genes)[abs(genes) > 2]
-
-
-      go_enrich <- enrichGO(gene = genes,
+      go_enrich = enrichGO(gene = genes,
                             OrgDb = organism,
                             keyType = inputParameter$keytype,
                             readable = T,
                             ont = input$onto,
                             pvalueCutoff = input$pvalCutOff,
-                            qvalueCutoff = 0.10)
-
-
+      )
 
       go_enrich=simplify(
         go_enrich,
@@ -136,53 +150,56 @@ genes <- names(genes)[abs(genes) > 2]
 
       return(go_enrich)
 
-    }
+    })
 
     # Fonction renvoyant le tableau de resultat de la methode d'enrichissement
     tabb <- reactive({
 
-      table=cbind(gg()$ID,gg()$Description,gg()$GeneRatio,gg()$BgRatio,gg()$pvalue,gg()$p.adjust,gg()$qvalue,gg()$geneID)
+      table=cbind(geneList()$ID,geneList()$Description,geneList()$GeneRatio,geneList()$BgRatio,geneList()$pvalue,geneList()$p.adjust,geneList()$qvalue,geneList()$geneID)
       colnames(table)=cbind('ID','Description','GeneRatio','BgRatio','pvalue','p.adjust','qvalue','geneID')
       return( data.frame(table))
     })
+    # Fonction renvoyant les différent GO terms significativement enrichi
+    choix <- reactive({
+      name=geneList()$ID
+      num  = c(1:length(name))
+      choiceTable = data.frame(name, num)
+      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
+      return(choix)
 
+    })
+# OUTPUT
+## TABLE
     # Fonction renvoyant à l'ui le tableau de résultat d'enrichissement
-    output$tableau <- DT::renderDataTable(DT::datatable(
-    {
-        tabb()},
+    output$tableau <- DT::renderDataTable(
+      DT::datatable({
+        tabb()
+      },
       extensions = 'Buttons',
       caption="Table: ORA table of GO terms",
       options = list(
 
         dom = 'Bfrtip',
         buttons = c('copy', 'csv', 'excel')
-      ),
-
-      class = "display"
-    ))
-
-
-    gg <- reactive({
-
-      return(geneList())
-    })
-
+      ),  class = "display")
+    )
+## PLOT
     # Fonction renvoyant un dotplot
     output$dotplot <- renderPlotly({
 
-      gbb=gg()
+      geneList = geneList()
       require(DOSE)
-     ggplotly( dotplot(gbb, showCategory=10))
+     ggplotly( dotplot(geneList, showCategory=input$numberCat))
 
     })
 
     # Fonction renvoyant un barplot
     output$barplot <- renderPlotly({
 
-      gbb=gg()
-      ggplotly(barplot(gbb,
+      geneList=geneList()
+      ggplotly(barplot(geneList,
               drop = TRUE,
-              showCategory = 10,
+              showCategory = input$numberCat2,
               title = "GO Biological Pathways",
               font.size = 8))
 
@@ -191,9 +208,9 @@ genes <- names(genes)[abs(genes) > 2]
     # Fonction renvoyant un goplot
     output$goplot <- renderPlotly({
 
-      gbb=gg()
+      geneList=geneList()
       require(DOSE)
-      ggplotly(goplot(gbb))
+      ggplotly(goplot(geneList))
 
     })
 
