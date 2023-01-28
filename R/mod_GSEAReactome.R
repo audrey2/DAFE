@@ -30,32 +30,54 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       if(inputParameter$Gsea_ORA == 'GSEA'){
 
 
-        LL[[1]] = fluidRow(box(width=13, class='VIOLET',
-
-          h1('GSEA Reactome settings',icon('cogs')),
-          hr(),
+        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA Reactome settings',icon('gear')),
+          
           fluidRow(
 
             column(width=4),
             column(width=5,
-              sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from input ",
+              sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
                       min = 0, max =0.1, value = 0.05,step=0.01)
+              ,actionButton(ns("go"),"Start",class="buttS",icon("play"))
             )
           )
         ))
         LL[[2]] = br()
 
-        LL[[3]] = fluidRow( tabsetPanel(
+        LL[[3]] = fluidRow( tabBox(width=12,height=NULL,
 
           tabPanel("Table",
-            DT::dataTableOutput(ns('tableau'))%>% withSpinner()
-          ),
+          fluidRow(
+            column(width=12,
+              box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
+                DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+              )
+            )
+          )
+        ),
           tabPanel("Plot",
-            plotlyOutput(ns('dotplotR'))%>% withSpinner(),
-            plotlyOutput(ns('gseaplotR'))%>% withSpinner(),
-            plotlyOutput(ns('pathwayR'))%>% withSpinner()
-          ),
-        ))
+          fluidRow(
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
+                numericInput(ns("numberCat"), min=1,value=10,label="Write number of category to show"),
+                plotlyOutput(ns('dotplotR'))%>% withSpinner()
+              )
+            ),
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('GSEAplot',icon('chart-simple')),
+                
+                plotOutput(ns('gseaplotR'))%>% withSpinner()
+              )
+            ),
+            column(width=6,
+              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
+                
+                plotOutput(ns('pathwayR'))%>% withSpinner()
+              )
+            )
+          )
+        )
+          ))
 
       }
       return(LL)
@@ -73,7 +95,7 @@ organism<- reactive({
 
 
 
-    kge<- reactive({
+    kge<- eventReactive(input$go,{
       req(inputParameter$fileOr)
       df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       
@@ -87,7 +109,7 @@ organism<- reactive({
       names(kegg_gene_list)=df$X
 
       organism=organism()
-      print(organism)
+    
       ids<-bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
         # remove duplicate IDS (here I use "ENSEMBL", but it should be whatever was selected as keyType)
 dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
@@ -135,8 +157,8 @@ react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
 
 
       kk=gsePathway(Reactome_gene_list,
-                 pvalueCutoff = 0.2,
-                 pAdjustMethod = "BH",
+                 pvalueCutoff = input$pvalCutOff,
+                 pAdjustMethod = inputParameter$pAdjMethod,
                  verbose = FALSE,organism=react_organism)
 
       return(kk)
@@ -154,7 +176,7 @@ react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
 
       gbb=geneListR()
       require(DOSE)
-      ggplotly(dotplot(gbb, showCategory=10))
+      ggplotly(dotplot(gbb, showCategory=input$numberCat))
 
     })
 
@@ -186,8 +208,9 @@ react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
 
     # Fonction renvoyant le tableau de resultat de l'enrichissement
     tabb <- reactive({
-      table= cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue,geneListR()$rank)
-      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank')
+      print(geneListR())
+      table= cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue)
+      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues')
       return(data.frame(table))
 
     })
