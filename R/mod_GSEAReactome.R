@@ -1,6 +1,6 @@
 #' GSEAReactome UI Function
 #'
-#' @description A shiny Module.
+#' @description This module run Over Representation Analysis on Reactome pathway.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
@@ -23,6 +23,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
     library(ReactomePA)
     ns <- session$ns
 
+# UI OUTPUT
     #Fonction renvoyant l'ui si la méthode choisi est GSEA
     output$condPanel<- renderUI({
       LL = c()
@@ -31,185 +32,155 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
 
         LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA Reactome settings',icon('gear')),
-          
           fluidRow(
-
-            column(width=4),
-            column(width=5,
+            column(width=1),
+            column(width=3,
               sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
                       min = 0, max =0.1, value = 0.05,step=0.01)
-              ,actionButton(ns("go"),"Start",class="buttS",icon("play"))
+            ),
+            column(width=2,
+              br(),br(),br(),
+              actionButton(ns("go"),"Start",icon("play"))
             )
           )
         ))
-        LL[[2]] = br()
-
         LL[[3]] = fluidRow( tabBox(width=12,height=NULL,
-
           tabPanel("Table",
-          fluidRow(
-            column(width=12,
-              box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+            fluidRow(
+              column(width=12,
+                box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
+                  DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                )
               )
             )
-          )
-        ),
+          ),
           tabPanel("Plot",
-          fluidRow(
-            column(width=6,
-              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
-                numericInput(ns("numberCat"), min=1,value=10,label="Write number of category to show"),
-                plotlyOutput(ns('dotplotR'))%>% withSpinner()
-              )
-            ),
-            column(width=6,
-              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('GSEAplot',icon('chart-simple')),
-                
-                plotOutput(ns('gseaplotR'))%>% withSpinner()
-              )
-            ),
-            column(width=6,
-              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
-                
-                plotOutput(ns('pathwayR'))%>% withSpinner()
+            fluidRow(
+              column(width=12,
+                box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
+                  uiOutput(ns('pathIdd2')),
+                  uiOutput(ns('titlePath')),
+                  plotOutput(ns('pathwayR'))%>% withSpinner()
+                )
+              ),
+              column(width=6,
+                box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
+                  uiOutput(ns('numberCategory')),
+                  plotlyOutput(ns('dotplotR'))%>% withSpinner()
+                )
+              ),
+              column(width=6,
+                box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('GSEAplot',icon('chart-simple')),
+                  uiOutput(ns('pathIdd')),
+                  plotOutput(ns('gseaplotR'))%>% withSpinner()
+                )
               )
             )
           )
-        )
-          ))
-
+        ))
       }
       return(LL)
     })
-organism<- reactive({
-      organism = inputParameter$orDb
-     
-      library(organism, character.only = TRUE)
-
-      return(organism)
-    })
-
 
     shinyDirChoose(input, 'folder2', root=c(root='~'), filetypes=c('png', 'txt'))
 
-
-
-    kge<- eventReactive(input$go,{
-      req(inputParameter$fileOr)
-      df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
-      
-      if(inputParameter$gsea_order=="log2FC")
-      {kegg_gene_list <- df$log2FC}
-      if(inputParameter$gsea_order=="pval")
-      {kegg_gene_list <- df$padj}
-      if(inputParameter$gsea_order=="Stat")
-      {kegg_gene_list <- df$stat}
-      df$X=df[,inputParameter$row.names]
-      names(kegg_gene_list)=df$X
-
-      organism=organism()
-    
-      ids<-bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
-        # remove duplicate IDS (here I use "ENSEMBL", but it should be whatever was selected as keyType)
-dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
-
-# Create a new dataframe df2 which has only the genes which were successfully mapped using the bitr function above
-df2 = df[df$X %in% dedup_ids$ENSEMBL,]
-
-# Create a new column in df2 with the corresponding ENTREZ IDs
-df2$Y = dedup_ids$ENTREZID
-
-# Create a vector of the gene unuiverse
- if(inputParameter$gsea_order=="log2FC")
-      {kegg_gene_list <- df2$log2FC}
-      if(inputParameter$gsea_order=="pval")
-      {kegg_gene_list <- df2$padj}
-      if(inputParameter$gsea_order=="Stat")
-      {kegg_gene_list <- df2$stat}
-
-
-# Name vector with ENTREZ ids
-names(kegg_gene_list) <- df2$Y
-
-# omit any NA values 
-kegg_gene_list<-na.omit(kegg_gene_list)
-
-# sort the list in decreasing order (required for clusterProfiler)
-kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
-
-    return(kegg_gene_list)
-
+    output$numberCategory <- renderUI({
+        numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show")
 
     })
+    # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input pour le pathway KEGG
+    output$pathIdd <- renderUI({
+
+      selectInput(ns('pathiId'),"Select Path Id to observe" ,
+        choices = choix(),width="20%")
+    })
+    PATHID<- reactive(input$pathiId)
+
+    # Fonction renvoyant le nom du pathway reactome observe   
+    output$titlePath <- renderUI({
+      num_path=as.numeric( PATHID2())
+      h4(geneListR()$Description[num_path])
+    })
+    
+    # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input pour le pathway KEGG
+    output$pathIdd2 <- renderUI({
+
+      selectInput(ns('pathiId2'),"Select Path Id to observe" ,choices = choix(),width="20%")
+    })
+    PATHID2<- reactive(input$pathiId2)
+
+
+
+#FUNCTION
+    # Fonction renvoyant la liste des gènes triés par log2FC decroissant
+    kge <- eventReactive(input$go,{
+      req(inputParameter$fileOr)
+      df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
+      
+      if(inputParameter$gsea_order=="log2FC") {kegg_gene_list = df$log2FC}
+      if(inputParameter$gsea_order=="pval")   {kegg_gene_list = df$padj}
+      if(inputParameter$gsea_order=="Stat")   {kegg_gene_list = df$stat}
+      
+      df$X=df[,inputParameter$row.names]
+      names(kegg_gene_list)=df$X
+      library(inputParameter$orDb, character.only = TRUE)
+
+      ids=bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=inputParameter$orDb)
+      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
+      df2 = df[df$X %in% dedup_ids$ENSEMBL,]
+      df2$Y = dedup_ids$ENTREZID
+
+      if(inputParameter$gsea_order=="log2FC")  {kegg_gene_list = df2$log2FC}
+      if(inputParameter$gsea_order=="pval")    {kegg_gene_list = df2$padj}
+      if(inputParameter$gsea_order=="Stat")    {kegg_gene_list = df2$stat}
+
+      names(kegg_gene_list) = df2$Y
+      kegg_gene_list=na.omit(kegg_gene_list)
+      kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
+
+      return(kegg_gene_list)
+    })
+
+
+ 
     # Fonction renvoyant un objet gsepathway
     geneListR<-reactive({
       req(inputParameter$fileOr)
      
-Reactome_gene_list = kge()
-
-
-
-react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
-                                'org.Dr.eg.db'='zebrafish','org.Hs.eg.db'='human',
+      Reactome_gene_list = kge()
+      react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
+                             'org.Dr.eg.db'='zebrafish','org.Hs.eg.db'='human',
                              'org.Sc.sgd.db'='yeast','org.Ce.eg.db'='celegans',
                              'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat')
 
 
-      kk=gsePathway(Reactome_gene_list,
+      gseaPath=gsePathway(Reactome_gene_list,
                  pvalueCutoff = input$pvalCutOff,
                  pAdjustMethod = inputParameter$pAdjMethod,
                  verbose = FALSE,organism=react_organism)
 
-      return(kk)
+      return(gseaPath)
+
+    })
+       # Fonction renvoyant les différent GO terms significativement enrichi
+    choix <- reactive({
+
+      name=geneListR()$ID
+      num  = c(1:length(name))
+      choiceTable = data.frame(name, num)
+      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
+
+      return(choix)
 
     })
 
-
-    
-
-
-
-    # Fonctions renvoyant les graphiques à l'ui
-
-    output$dotplotR <- renderPlotly({
-
-      gbb=geneListR()
-      require(DOSE)
-      ggplotly(dotplot(gbb, showCategory=input$numberCat))
-
-    })
-
-   output$gseaplotKegg <- renderPlotly(ggplotly(gseaplot(kge(), by = "all", title = gene_list_Reactome()$Description[as.numeric(PATHID())], geneSetID =as.numeric( PATHID()))))
-
-
-   # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
-    output$pathwayR <- renderPlotly({
-
-      gbb=geneListR()
-
-
-      kg=switch(inputParameter$orDb,'org.Dm.eg.db'='dme','org.At.tair.db'='ath',
-                'org.Dr.eg.db'='dre','org.Ss.eg.db'='ssc','org.Cf.eg.db'='cfa',
-                'org.Ag.eg.db'='aga','org.EcSakai.eg.db'='ecs','org.Hs.eg.db'='hsa',
-                'org.Sc.sgd.db'='sce','org.Ce.eg.db'='sko','org.Gg.eg.db'='gga',
-                'org.EcK12.eg.db'='eco','org.Pt.eg.db'='ptr','org.Mxanthus.db'='mxa',
-                'org.Mm.eg.db'='mmu','org.Rn.eg.db'='rno','org.Bt.eg.db'='bta',
-                'org.Mmu.eg.db'='mvv','org.Xl.eg.db'='xla','org.Pf.plasmo.db'='pfa')
-      react=switch(kg,'dme'='fly' ,'ath'='arabidopsis','dre'='zebrafish','ssc'='pig','cfa'='canine','ecs'='ecolik12','hsa'='human','sce'='yeast','sko'='celegans','gga'='chicken','eco'='ecolik12','mmu'='mouse','rno'='rat','bta'='bovine','xla'='xenopus')
-
-
-      ggplotly(viewPathway(gbb$Description[1],
-                           readable = TRUE,
-                           organism=react,
-                           foldChange = kge()))
-
-    })
+#OUTPUT
+## TABLE
 
     # Fonction renvoyant le tableau de resultat de l'enrichissement
     tabb <- reactive({
-      print(geneListR())
-      table= cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue)
+
+      table = cbind(geneListR()$ID,geneListR()$Description,geneListR()$enrichmentScore,geneListR()$NES,geneListR()$pvalue,geneListR()$p.adjust,geneListR()$qvalue)
       colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues')
       return(data.frame(table))
 
@@ -235,9 +206,49 @@ react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
 
 
 
+##PLOT 
+ 
+    output$dotplotR <- renderPlotly({
+
+      gseaPath=geneListR()
+      require(DOSE)
+      ggplotly(dotplot(gseaPath, showCategory=input$numberCat))
+
+    })
+
+    output$gseaplotKegg <- renderPlotly(
+      ggplotly(
+        gseaplot(kge(), by = "all",
+          title = gene_list_Reactome()$Description[as.numeric(PATHID())],
+          geneSetID =as.numeric( PATHID())
+        )
+      )
+    )
 
 
+   # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
+    output$pathwayR <- renderPlotly({
 
+      gseaPath=geneListR()
+
+
+      organismR=switch(inputParameter$orDb,'org.Dm.eg.db'='fly','org.At.tair.db'='arabidopsis',
+                'org.Dr.eg.db'='zebrafish','org.Ss.eg.db'='pig','org.Cf.eg.db'='canine',
+                'org.Ag.eg.db'=NA,'org.EcSakai.eg.db'='ecolik12','org.Hs.eg.db'='human',
+                'org.Sc.sgd.db'='yeast','org.Ce.eg.db'='celegans','org.Gg.eg.db'='chicken',
+                'org.EcK12.eg.db'='ecolik12','org.Pt.eg.db'=NA,'org.Mxanthus.db'=NA,
+                'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat','org.Bt.eg.db'='bovine',
+                'org.Mmu.eg.db'=NA,'org.Xl.eg.db'='xenopus','org.Pf.plasmo.db'=NA)
+      
+      
+      ggplotly(viewPathway(gseaPath$Description[as.numeric(PATHID2())],
+             readable = TRUE,
+             organism=organismR,
+             foldChange = kge()))
+
+    })
+
+    
 
 
 
@@ -246,9 +257,3 @@ react_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='fly',
 
   })
 }
-
-## To be copied in the UI
-# mod_GSEAReactome_ui("GSEAReactome_1")
-
-## To be copied in the server
-# mod_GSEAReactome_server("GSEAReactome_1")
