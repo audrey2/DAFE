@@ -85,7 +85,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
     shinyDirChoose(input, 'folder2', root=c(root='~'), filetypes=c('png', 'txt'))
 
     output$numberCategory <- renderUI({
-        numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show")
+        numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
 
     })
     # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input pour le pathway KEGG
@@ -126,9 +126,12 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       library(inputParameter$orDb, character.only = TRUE)
 
       ids=bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=inputParameter$orDb)
-      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
+      dedup_idsE = ids[!duplicated(ids[c("ENSEMBL")]),]
+      dedup_ids = dedup_idsE[!duplicated(dedup_idsE[c("ENTREZID")]),]
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
+
       df2$Y = dedup_ids$ENTREZID
+      
 
       if(inputParameter$gsea_order=="log2FC")  {kegg_gene_list = df2$log2FC}
       if(inputParameter$gsea_order=="pval")    {kegg_gene_list = df2$padj}
@@ -216,21 +219,20 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
     })
 
-    output$gseaplotKegg <- renderPlotly(
-      ggplotly(
-        gseaplot(kge(), by = "all",
-          title = gene_list_Reactome()$Description[as.numeric(PATHID())],
+    output$gseaplotR<- renderPlot(
+      enrichplot::gseaplot2(geneListR(),
+          title = geneListR()$Description[as.numeric(PATHID())],
           geneSetID =as.numeric( PATHID())
-        )
       )
     )
+    
 
 
    # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
-    output$pathwayR <- renderPlotly({
+    output$pathwayR <- renderPlot({
 
       gseaPath=geneListR()
-
+  
 
       organismR=switch(inputParameter$orDb,'org.Dm.eg.db'='fly','org.At.tair.db'='arabidopsis',
                 'org.Dr.eg.db'='zebrafish','org.Ss.eg.db'='pig','org.Cf.eg.db'='canine',
@@ -240,11 +242,11 @@ mod_GSEAReactome_server <- function(id,inputParameter){
                 'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat','org.Bt.eg.db'='bovine',
                 'org.Mmu.eg.db'=NA,'org.Xl.eg.db'='xenopus','org.Pf.plasmo.db'=NA)
       
-      
-      ggplotly(viewPathway(gseaPath$Description[as.numeric(PATHID2())],
+
+     viewPathway(gseaPath$Description[as.numeric(PATHID2())],
              readable = TRUE,
              organism=organismR,
-             foldChange = kge()))
+             foldChange = kge())
 
     })
 
