@@ -27,6 +27,6 @@ Install Differential_Analysis_Shiny
 ## Demo
 
 Il existe des données test inclus directement dans l'application, ainsi une demo de l'application est disponible en cliquant sur le bouton 'use data test' du second onglet
-[image]("https://github.com/audrey2/Differential_Analaysis_Rshiny/Data_test_DAFE.png")
+[image]("https://github.com/audrey2/Differential_Analaysis_Rshiny/main/Data_test_DAFE.png?raw=true")
 
 
