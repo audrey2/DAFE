@@ -5,7 +5,13 @@
 \title{Run the Shiny Application}
 \usage{
 run_app(
-  onStart = NULL,
+  onStart = function() {
+     print("Install necessary package")
+     if (!"BiocManager"
+    \%in\% installed.packages()) {
+         install.packages("BiocManager")
+     }
+ },
   options = list(),
   enableBookmarking = NULL,
   uiPattern = "/",
