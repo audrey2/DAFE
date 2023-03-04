@@ -19,8 +19,9 @@ mod_GSEAReactome_ui <- function(id){
 #' @noRd
 mod_GSEAReactome_server <- function(id,inputParameter){
   moduleServer( id, function(input, output, session){
-    ns <- session$ns
+
     library(ReactomePA)
+
     ns <- session$ns
 
 # UI OUTPUT
@@ -31,7 +32,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       if(inputParameter$Gsea_ORA == 'GSEA'){
 
 
-        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA Reactome settings',icon('gear')),
+        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA Reactome Settings',icon('gear')),
           fluidRow(
             column(width=1),
             column(width=3,
@@ -94,7 +95,9 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       selectInput(ns('pathiId'),"Select Path Id to observe" ,
         choices = choix(),width="20%")
     })
-    PATHID<- reactive(input$pathiId)
+    PATHID<- reactive({
+      req(input$pathiId)
+      input$pathiId})
 
     # Fonction renvoyant le nom du pathway reactome observe   
     output$titlePath <- renderUI({
@@ -112,18 +115,22 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
 
 #FUNCTION
-    # Fonction renvoyant la liste des gènes triés par log2FC decroissant
+    # Fonction renvoyant la liste des gènes triés par log2FoldChange decroissant
     kge <- eventReactive(input$go,{
       req(inputParameter$fileOr)
+      req(inputParameter$orDb)
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
+
       df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       
-      if(inputParameter$gsea_order=="log2FC") {kegg_gene_list = df$log2FC}
+      if(inputParameter$gsea_order=="log2FoldChange") {kegg_gene_list = df$log2FoldChange}
       if(inputParameter$gsea_order=="pval")   {kegg_gene_list = df$padj}
       if(inputParameter$gsea_order=="Stat")   {kegg_gene_list = df$stat}
       
       df$X=df[,inputParameter$row.names]
       names(kegg_gene_list)=df$X
-      library(inputParameter$orDb, character.only = TRUE)
+
 
       ids=bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=inputParameter$orDb)
       dedup_idsE = ids[!duplicated(ids[c("ENSEMBL")]),]
@@ -133,7 +140,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
       df2$Y = dedup_ids$ENTREZID
       
 
-      if(inputParameter$gsea_order=="log2FC")  {kegg_gene_list = df2$log2FC}
+      if(inputParameter$gsea_order=="log2FoldChange")  {kegg_gene_list = df2$log2FoldChange}
       if(inputParameter$gsea_order=="pval")    {kegg_gene_list = df2$padj}
       if(inputParameter$gsea_order=="Stat")    {kegg_gene_list = df2$stat}
 
@@ -212,7 +219,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 ##PLOT 
  
     output$dotplotR <- renderPlotly({
-
+      req(input$numberCat)
       gseaPath=geneListR()
       require(DOSE)
       ggplotly(dotplot(gseaPath, showCategory=input$numberCat))
@@ -230,9 +237,10 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
    # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
     output$pathwayR <- renderPlot({
-
+      req(inputParameter)
       gseaPath=geneListR()
-  
+      print('aaaaa')
+      print(gseaPath)
 
       organismR=switch(inputParameter$orDb,'org.Dm.eg.db'='fly','org.At.tair.db'='arabidopsis',
                 'org.Dr.eg.db'='zebrafish','org.Ss.eg.db'='pig','org.Cf.eg.db'='canine',
@@ -242,7 +250,7 @@ mod_GSEAReactome_server <- function(id,inputParameter){
                 'org.Mm.eg.db'='mouse','org.Rn.eg.db'='rat','org.Bt.eg.db'='bovine',
                 'org.Mmu.eg.db'=NA,'org.Xl.eg.db'='xenopus','org.Pf.plasmo.db'=NA)
       
-
+      print(organismR)
      viewPathway(gseaPath$Description[as.numeric(PATHID2())],
              readable = TRUE,
              organism=organismR,
@@ -250,12 +258,6 @@ mod_GSEAReactome_server <- function(id,inputParameter){
 
     })
 
-    
-
-
-
-
-
-
+ 
   })
 }

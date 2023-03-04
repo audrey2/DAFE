@@ -8,7 +8,21 @@
 #' @importFrom shiny shinyApp
 #' @importFrom golem with_golem_options
 run_app <- function(
-  onStart = NULL,
+  onStart = function(){
+   print('Install necessary package') 
+    if(!"BiocManager" %in% installed.packages()){
+      install.packages("BiocManager")
+    }
+    #BiocManager::install("DESeq2",update=FALSE)
+    #BiocManager::install("clusterProfiler",update=FALSE)
+    #BiocManager::install("DOSE",update=FALSE)
+    #BiocManager::install("ReactomePA",update=FALSE)
+    #BiocManager::install("enrichplot",update=FALSE)
+    #BiocManager::install("pathview",update=FALSE)
+    #BiocManager::install("GO.db",update=FALSE)
+    #BiocManager::install("ggpubr",update=FALSE)
+    #BiocManager::install("heatmaply",update=FALSE)
+  },
   options = list(),
   enableBookmarking = NULL,
   uiPattern = "/",

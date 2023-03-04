@@ -26,6 +26,7 @@ mod_GSEA_server <- function(id,inputParameter){
   library(plotly)
   library(shinycssloaders)
 
+
   moduleServer( id, function(input, output, session){
 
     ns <- session$ns
@@ -36,7 +37,7 @@ mod_GSEA_server <- function(id,inputParameter){
       if(inputParameter$Gsea_ORA =='GSEA'  ){
 
 
-        LL[[1]]=fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA GO terms settings',icon('gear')),
+        LL[[1]]=fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA GO terms Settings',icon('gear')),
       
           fluidRow(
             column(width=1),
@@ -101,14 +102,19 @@ mod_GSEA_server <- function(id,inputParameter){
 
     # Fonction renvoyant un objet GSEA enfonction des spécificité choisi
     geneList<-eventReactive(input$go,{
-      req(inputParameter$fileOr)
+  
+      req(inputParameter$fileOr,inputParameter$orDb,inputParameter$gsea_order,input$GoLevel)
+
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
+
       df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism = inputParameter$orDb
      
-      library(organism, character.only = TRUE)
 
 
-      if(inputParameter$gsea_order=="log2FC") {original_gene_list <- df$log2FC}
+
+      if(inputParameter$gsea_order=="log2FoldChange") {original_gene_list <- df$log2FoldChange}
       if(inputParameter$gsea_order=="pval")   {original_gene_list <- df$padj}
       if(inputParameter$gsea_order=="Stat")   {original_gene_list <- df$stat}     
 
@@ -148,11 +154,16 @@ mod_GSEA_server <- function(id,inputParameter){
 ## TABLE
 # Fonction renvoyant le tableau d'enrcihissement
     tabb <- reactive({
-      table=geneList()
      
-      table= cbind(table$ID,table$Description,table$enrichmentScore,table$NES,table$pvalue,table$p.adjust,table$qvalue,table$rank)
-      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank')
+        req(inputParameter)
+     
+
+      table=geneList()
+
+      table= cbind(table$ID,table$Description,table$enrichmentScore,table$NES,table$pvalue,table$p.adjust,table$qvalue)
+      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues')
       return(data.frame(table))
+
 
     })
 
@@ -174,9 +185,9 @@ mod_GSEA_server <- function(id,inputParameter){
 ## PLOT
     # Fonction renvoyant un dotplot
     output$dotplot <- renderPlotly({
-
+      req(input$numberCat)
       withProgress(message = "Plotting dotPlot ...",{
-  
+        
         require(DOSE)
         ggplotly(dotplot(geneList(), showCategory=input$numberCat, split=".sign") + facet_grid(.~.sign))})
 
@@ -184,7 +195,7 @@ mod_GSEA_server <- function(id,inputParameter){
 
     # Fonction renvoyant le GSEA plot
     output$gseaplot <- renderPlot({
-
+      req(input$pathId)
 
       require(DOSE)
       enrichplot::gseaplot2(geneList(), title = geneList()$Description[as.numeric(input$pathId)], geneSetID = as.numeric(input$pathId))

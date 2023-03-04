@@ -26,12 +26,12 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
     library(shinyFiles)
     library(png)
     library(plotly)
-    library(cowplot)
-    library(magick)
-    library(ggimage)
+
+
     ns <- session$ns
 
 
+# UI OUTPUT
     #Fonction renvoyant l'ui si la méthode choisi est GSEA
     output$condPanel<- renderUI({
       LL=c()
@@ -40,7 +40,7 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
 
 
 
-        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA KEGG settings',icon('gear')),
+        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('GSEA KEGG Settings',icon('gear')),
           
           fluidRow(
             column(width=1),
@@ -95,23 +95,36 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
       return(LL)
     })
 
-    # Fonction chargant la librairie correspondante à l'organisme choisi
-    organism<- reactive({
-      organism = inputParameter$orDb
-     
-      library(organism, character.only = TRUE)
-
-      return(organism)
-    })
-
+    # Fonction renvoyant à l'ui un slideerInput pour deteminer le nombre de categrories a afficher sur le dotPlot
     output$numberCategrorie <- renderUI({
        numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
 
-      })
+    })
+
+    # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input pour le pathway KEGG
+    output$pathIdd <- renderUI({
+
+      selectInput(ns('pathiId'),"Select Path Id to observe" ,choices = choix())
+    })
+    # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input pour le gseaKEGG
+    output$pathIdd2 <- renderUI({
+
+      selectInput(ns('pathiId2'),"Select Path Id to observe" ,choices = choix(),width="20%")
+    })
+
+    shinyDirChoose(input, 'folder', root=c(root='~'), filetypes=c('png', 'txt'))
+
+
+# FUNCTION
+
     # Fonction renvoyant un objet gseKEGG
     gene_list_kegg <- eventReactive(input$go,{
       
       req(inputParameter$fileOr)
+      req(inputParameter$orDb)
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
+
       kegg_gene_list = kge()
 
       kegg_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='dme','org.At.tair.db'='ath',
@@ -136,49 +149,26 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
       return(gseaKegg)
     })
 
-    # Fonction renvoyant les différent pathway significativement enrichi
-    choix <- reactive({
-      name = gene_list_kegg()$ID
-      num  = c(1:length(name))
-      choiceTable = data.frame(name, num)
-      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
-
-      return(choix)
-
-    })
-
-    # Fonction renvoyant à l'ui les différent pathway significativement enrichi sous la forme d'un select input
-    output$pathIdd <- renderUI({
-
-      selectInput(ns('pathiId'),"Select Path Id to observe" ,choices = choix())
-    })
-      output$pathIdd2 <- renderUI({
-
-      selectInput(ns('pathiId2'),"Select Path Id to observe" ,choices = choix(),width="20%")
-    })
-
-    shinyDirChoose(input, 'folder', root=c(root='~'), filetypes=c('png', 'txt'))
-
-
-    # Fonction renvoyant la liste des gènes triés par log2FC decroissant
+   
+    # Fonction renvoyant la liste des gènes triés par log2FoldChange decroissant
     kge <- eventReactive(input$go,{
       req(inputParameter$fileOr)
       df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       
-      if(inputParameter$gsea_order=="log2FC") {kegg_gene_list <- df$log2FC}
+      if(inputParameter$gsea_order=="log2FoldChange") {kegg_gene_list <- df$log2FoldChange}
       if(inputParameter$gsea_order=="pval")   {kegg_gene_list <- df$padj}
       if(inputParameter$gsea_order=="Stat")   {kegg_gene_list <- df$stat}
       
       df$X=df[,inputParameter$row.names]
       names(kegg_gene_list)=df$X
+ 
 
-      organism=organism()
-      ids<-bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
+      ids<-bitr(names(kegg_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=inputParameter$orDb)
       dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
       df2$Y = dedup_ids$ENTREZID
 
-      if(inputParameter$gsea_order=="log2FC")  {kegg_gene_list <- df2$log2FC}
+      if(inputParameter$gsea_order=="log2FoldChange")  {kegg_gene_list <- df2$log2FoldChange}
       if(inputParameter$gsea_order=="pval")    {kegg_gene_list <- df2$padj}
       if(inputParameter$gsea_order=="Stat")    {kegg_gene_list <- df2$stat}
 
@@ -189,33 +179,27 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
       return(kegg_gene_list)
     })
 
-    PATHID<- reactive(input$pathiId)
-    PATHID2<- reactive(input$pathiId2)
+    PATHID<- reactive({
+      req(input$pathiId) 
+      input$pathiId})
+    PATHID2<- reactive({
+      req(input$pathiId2) 
+      input$pathiId2})
 
+     # Fonction renvoyant les différent pathway significativement enrichi
+    choix <- reactive({
+      name = gene_list_kegg()$ID
+      num  = c(1:length(name))
+      choiceTable = data.frame(name, num)
+      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
 
-### PLOT
-   
-    output$dotplotKegg <- renderPlotly(
-      ggplotly( 
-        dotplot(gene_list_kegg(), showCategory = input$numberCat, title = "Enriched Pathways" )
-        )
-    )
-    output$gseaplotKegg <- renderPlot( 
-      enrichplot::gseaplot2(gene_list_kegg(),  title = gene_list_kegg()$Description[as.numeric(PATHID2())],
-          geneSetID =as.numeric( PATHID())
-      )
-    )
-    output$png<- renderPlotly( {
+      return(choix)
 
-        fig=plot_ly()
-      fig = fig %>% add_trace(type="image", source= raster2uri(readPNG(pathView())), hoverinfo = "skip")
-      return(fig)
     })
 
-
-   # Fonction renvoyant le nom de l'image correspondant au patway KEGG
+    # Fonction renvoyant le nom de l'image correspondant au patway KEGG
     pathView<- reactive({
-
+      req(inputParameter$fileOr,input$folder)
       dir="~"
       for( i in 1: length(input$folder)){
 
@@ -240,11 +224,17 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
 
      })
 
+
+# OUTPUT
+## TABLE
     # Fonction renvoyant le tableau de resultat de l'enrichissement
     tabb <- reactive({
-      table= cbind(gene_list_kegg()$ID,gene_list_kegg()$Description,gene_list_kegg()$enrichmentScore,gene_list_kegg()$NES,gene_list_kegg()$pvalue,gene_list_kegg()$p.adjust,gene_list_kegg()$qvalue,gene_list_kegg()$rank)
-      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues','rank')
-      return(data.frame(table))
+      
+      if(nrow(gene_list_kegg())==0){
+      table= cbind(gene_list_kegg()$ID,gene_list_kegg()$Description,gene_list_kegg()$enrichmentScore,gene_list_kegg()$NES,gene_list_kegg()$pvalue,gene_list_kegg()$p.adjust,gene_list_kegg()$qvalue)
+      colnames(table)= c('ID','Description','enrichmentScore','NES','pvalue','p.adjust','qvalues')
+      return(data.frame(table))}
+      return(data.frame())
     })
 
 
@@ -260,11 +250,26 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
         ),  class = "display"
       )
     )
+
+## PLOT
+   
+    output$dotplotKegg <- renderPlotly({
+      req(input$numberCat)
+      ggplotly( 
+        dotplot(gene_list_kegg(), showCategory = input$numberCat, title = "Enriched Pathways" )
+        )
+    })
+    output$gseaplotKegg <- renderPlot( 
+      enrichplot::gseaplot2(gene_list_kegg(),  title = gene_list_kegg()$Description[as.numeric(PATHID2())],
+          geneSetID =as.numeric( PATHID())
+      )
+    )
+    output$png<- renderPlotly( {
+
+        fig=plot_ly()
+      fig = fig %>% add_trace(type="image", source= raster2uri(readPNG(pathView())), hoverinfo = "skip")
+      return(fig)
+    })
+
   })
 }
-
-## To be copied in the UI
-# mod_GSEAKEGG_ui("GSEAKEGG_1")
-
-## To be copied in the server
-# mod_GSEAKEGG_server("GSEAKEGG_1")

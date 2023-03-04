@@ -20,6 +20,7 @@ mod_ORAReactome_ui <- function(id){
 mod_ORAReactome_server <- function(id,inputParameter){
   moduleServer( id, function(input, output, session){
     library(ReactomePA)
+
     ns <- session$ns
 
 
@@ -29,7 +30,7 @@ mod_ORAReactome_server <- function(id,inputParameter){
       LL=c()
 
       if(inputParameter$Gsea_ORA == 'ORA'){
-        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA Reactome settings',icon('gear')),
+        LL[[1]] = fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA Reactome Settings',icon('gear')),
           fluidRow(
             column(width=1),
             column(width=3,
@@ -63,13 +64,13 @@ mod_ORAReactome_server <- function(id,inputParameter){
             ),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
-                numericInput(ns("numberCat"), min=1,value=10,label="Write number of category to show",width="20%"),
+                uiOutput(ns('numberCategrory')),
                 plotlyOutput(ns('dotplotR'))%>% withSpinner()
               )
             ),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Barplot',icon('chart-simple')),
-                numericInput(ns("numberCat2"), min=1,value=10,label="Write number of category to show",width="20%"),
+                uiOutput(ns('numberCategrory2')),
                 plotlyOutput(ns('barplotR'))%>% withSpinner()
               )
             )
@@ -89,14 +90,24 @@ mod_ORAReactome_server <- function(id,inputParameter){
 
       selectInput(ns('pathiId'),"Select Path Id to observe" ,choices = choix(),width="20%")
     })
-    PATHID<- reactive(input$pathiId)
+    PATHID<- reactive({
+      req(input$pathiId)
+      input$pathiId})
 
   # Fonction renvoyant le nom du pathway reactome observe   
   output$titlePath <- renderUI({
       num_path=as.numeric( PATHID())
       h4(geneListR()$Description[num_path])
       })
+       # Fonction renvoyant à l'ui un slideerInput pour deteminer le nombre de categrories a afficher sur le dotPlot
+    output$numberCategrory <- renderUI({
+       numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
 
+    })
+        output$numberCategrory2 <- renderUI({
+       numericInput(ns("numberCat2"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
+
+    })
 
 # FUNCTION 
     # Fonction renvoyant un objet enrichpathway
@@ -120,23 +131,27 @@ mod_ORAReactome_server <- function(id,inputParameter){
 
    kge<- eventReactive(input$go,{
       req(inputParameter$fileOr)
+      req(inputParameter$orDb)
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
+
 
       df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism=inputParameter$orDb
       if(inputParameter$ora_order=="overexpressed"){
-        df=subset(df,log2FC >0)
+        df=subset(df,log2FoldChange >0)
         df=subset(df,padj< input$pvalCutOff)
       }
       if(inputParameter$ora_order=="underexpressed"){
-        df=subset(df,log2FC <0)
+        df=subset(df,log2FoldChange <0)
         df=subset(df, padj < inputParameter$pvalI)
       }
       if(inputParameter$ora_order=="both"){ df=subset(df, padj < input$pvalCutOff)}
   
       df$X=df[,inputParameter$row.names]
  
-      library(organism, character.only = TRUE)
-      original_gene_list = df$log2FC
+    
+      original_gene_list = df$log2FoldChange
 
       names(original_gene_list) = df[,inputParameter$row.names]
 
@@ -146,7 +161,7 @@ mod_ORAReactome_server <- function(id,inputParameter){
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
       df2$Y = dedup_ids$ENTREZID
 
-      kegg_gene_list = df2$log2FC
+      kegg_gene_list = df2$log2FoldChange
 
       names(kegg_gene_list) = df2$Y
 
@@ -192,7 +207,7 @@ mod_ORAReactome_server <- function(id,inputParameter){
 ## PLOT  
   # Fonctions renvoyant le dot plot
     output$dotplotR <- renderPlotly({
-
+      req(input$numberCat)
       require(DOSE)
       ggplotly(dotplot(geneListR(), showCategory=input$numberCat))
 
@@ -210,7 +225,7 @@ mod_ORAReactome_server <- function(id,inputParameter){
 
     # Fonction renvoyant le nom de l'image correspondant au pathway Reactome
     output$pathwayR <- renderPlot({
-
+      req(inputParameter)
       kg=switch(inputParameter$orDb,'org.Dm.eg.db'='dme','org.At.tair.db'='ath',
                 'org.Dr.eg.db'='dre','org.Ss.eg.db'='ssc','org.Cf.eg.db'='cfa',
                 'org.Ag.eg.db'='aga','org.EcSakai.eg.db'='ecs','org.Hs.eg.db'='hsa',

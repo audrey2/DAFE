@@ -10,33 +10,34 @@
 mod_Dispersion_analysis_ui <- function(id){
   ns <- NS(id)
   tagList(
-
-    #column(width=3,
-
-
-
-     #      box(width=12,status='info',solidHeader=TRUE,title=h3("Experience Information",icon('info')),
-
-      #         verbatimTextOutput(ns("infoDiff")))
-
-
-  #  ),
+    column(width=6,
+      box(width=NULL,status='success',solidHeader=TRUE,title=h1("Volcano Plot",icon('chart-simple')),
+        fluidRow(
+          column(width=1,
+            dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',width="300px",
+              tags$h3("Option of treshold"),
+              sliderInput(ns("ts_FC"), label = "log2 FoldChange  cutoff from input",
+                        min = 0, max = 5, value = 1,step=0.1),
+              sliderInput(ns("ts_padj"),label = "p-Value cutoff from output ",
+                        min = 0, max =0.1, value = 0.01,step=0.01)
+            )
+          ),
+          column(width=11,
+            plotlyOutput(ns("volcano"))%>% withSpinner()
+          )
+        )
+      )
+    ),
+    column(width=6, 
+      box(width=NULL,status='success',solidHeader=TRUE,title=h1("MA plot",icon('chart-simple')),
+        plotlyOutput(ns("maplot"))%>% withSpinner()
+      ),
+    ),
     column(width=12,
-           box(width=6,status='success',solidHeader=TRUE,title=h1("Volcano Plot",icon('chart-simple')),
-  fluidRow(column(width=1,
-               dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',width="300px",
-                              tags$h3("Option of treshold"),
-                              sliderInput(ns("ts_FC"), label = "log2 FoldChange  cutoff from input",
-                                          min = 0, max = 5, value = 1,step=0.1),
-                              sliderInput(ns("ts_padj"),label = "p-Value cutoff from output ",
-                                          min = 0, max =0.1, value = 0.01,step=0.01))),column(width=11,
-
-               plotlyOutput(ns("volcano"))%>% withSpinner()))),
-
-        box(width=6,status='success',solidHeader=TRUE,title=h1("MA plot",icon('chart-simple')),plotlyOutput(ns("maplot"))%>% withSpinner()),
-   ),
-   box(width=12,status='primary',title = h1('Table of selected results',icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("degTableZoomed"))%>% withSpinner()),
-
+      box(width=NULL,status='primary',title = h1('Table of selected results',icon('table')),solidHeader = TRUE, 
+        DT::dataTableOutput(ns("degTableZoomed"))%>% withSpinner()
+      )
+    )
 
   )
 }
@@ -53,51 +54,49 @@ mod_Dispersion_analysis_server <- function(id,TAB_RES,inputNorm){
     RES <- reactive({
 
       resD=  results(TAB_RES)
-    name=rownames(resD)
+      name=rownames(resD)
 
-    res2=cbind(name,resD)
-    rownames(res2)=NULL
-    df=data.frame(res2)
+      res2=cbind(name,resD)
+      rownames(res2)=NULL
+      df=data.frame(res2)
 
-    return(df)
+      return(df)
     })
     ranges <- reactiveValues(x = NULL, y = NULL)
 
     # Fonction generant le volcano plot
     Volcano <- reactive({
-
+    
 
       withProgress(message = "Plotting Volcano ...",{
-      tsPadj = as.numeric(input$ts_padj)
-      tsFC = as.numeric(input$ts_FC)
-      table = RES()
+        tsPadj = as.numeric(input$ts_padj)
+        tsFC = as.numeric(input$ts_FC)
+        table = RES()
 
-      table$diffexpressed = "NO"
+        table$diffexpressed = "NO"
+        table$diffexpressed[table$log2FoldChange > tsFC & table$padj < tsPadj] = "UP"
+        table$diffexpressed[table$log2FoldChange < -tsFC & table$padj < tsPadj] = "DOWN"
 
-      table$diffexpressed[table$log2FoldChange > tsFC & table$padj < tsPadj] = "UP"
+        cols=c("gold", "black","blue")
 
-      table$diffexpressed[table$log2FoldChange < -tsFC & table$padj < tsPadj] = "DOWN"
+        if(nrow(subset(table,diffexpressed = 'NO'))   == 0) { cols = c('gold' , 'blue')}
+        if(nrow(subset(table,diffexpressed = 'DOWN')) == 0) { cols = c('black', 'blue')}
+        if(nrow(subset(table,diffexpressed = 'UP'))   ==0)  { cols = c('black', 'gold')}
 
-      cols=c("gold", "black","blue")
-
-      if(nrow(subset(table,diffexpressed = 'NO'))   == 0) { cols = c('gold' , 'blue')}
-      if(nrow(subset(table,diffexpressed = 'DOWN')) == 0) { cols = c('black', 'blue')}
-      if(nrow(subset(table,diffexpressed = 'UP'))   ==0)  { cols = c('black', 'gold')}
-
-      plot = ggplot(data=table, aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed, tooltip=name)) +
-        geom_point(size=1) + theme_minimal()+
-        geom_vline(xintercept=c(-tsFC, tsFC), col="red") +
-        geom_hline(yintercept=-log10(tsPadj), col="red")+
-        coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE)+
-        scale_color_manual(values=cols)
-})
+        plot = ggplot(data=table, aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed, tooltip=name)) +
+          geom_point(size=1) + theme_minimal()+
+          geom_vline(xintercept=c(-tsFC, tsFC), col="red") +
+          geom_hline(yintercept=-log10(tsPadj), col="red")+
+          coord_cartesian(xlim = ranges$x, ylim = ranges$y, expand = FALSE)+
+          scale_color_manual(values=cols)
+      })
       return(plot)
     })
 
 
     # Fonction generant le MA plot
     MA<- reactive({
-
+    
       tsPadj = as.numeric(input$ts_padj)
       tsFC = as.numeric(input$ts_FC)
       table = RES()
@@ -126,7 +125,7 @@ mod_Dispersion_analysis_server <- function(id,TAB_RES,inputNorm){
     # Affichage du nombre de transcrits differentiellemnt exprimes
 
     output$infoDiff<- renderText({
-
+      req(input$ts_padj,input$tsFC)
       tsPadj = as.numeric(input$ts_padj)
       tsFC = as.numeric(input$ts_FC)
       table = RES()
@@ -220,9 +219,3 @@ mod_Dispersion_analysis_server <- function(id,TAB_RES,inputNorm){
 
   })
 }
-
-## To be copied in the UI
-# mod_Dispersion_analysis_ui("Dispersion_analysis_1")
-
-## To be copied in the server
-# mod_Dispersion_analysis_server("Dispersion_analysis_1")

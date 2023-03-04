@@ -7,11 +7,11 @@
 app_server <- function(input, output, session) {
 
 
-  inputInfo=mod_Input_Norm_server("Input_Norm_1")
-  inputReplicat=mod_Replica_Quality_server("Replica_Quality_1",inputInfo)
+
 
   # Fonction renvoyant la liste des conditions
   heatCondition <- function(){
+    req(inputInfo$nb_facteur)
     num  = c()
     name = c()
 
@@ -31,7 +31,7 @@ app_server <- function(input, output, session) {
 
   # Fonction qui renvoie un objet DESeq DataSet
    DDS <- reactive({
-
+    req(inputInfo,inputReplicat$selectKeep,inputInfo$exemple)
     data = tabData(inputInfo)
     row.names(data) = data[, 1]
     data = data[, as.numeric(inputReplicat$selectKeep) + 1]
@@ -87,6 +87,8 @@ app_server <- function(input, output, session) {
 
   # Fonction renvoyant le tabelau de rsultat de l'analyse differentielle
   tabRes <-reactive( {
+    req(inputNorm$choixFitType,inputNorm$choixTest)
+    
     withProgress(message = "Differential Analysis ..." ,{
       dds = DDS()
 
@@ -99,6 +101,8 @@ app_server <- function(input, output, session) {
       return(table)
     })
   })
+  inputInfo=mod_Input_Norm_server("Input_Norm_1")
+  inputReplicat=mod_Replica_Quality_server("Replica_Quality_1",inputInfo)
   inputNorm=mod_Normalisation_AD_server("Normalisation_AD_1",inputInfo,inputReplicat,DDS(),tabRes())
   inputParameter=mod_parameter_EA_server("parameter_EA_1")
 

@@ -13,7 +13,7 @@ mod_Replica_Quality_ui <- function(id){
   library(plotly)
   library(colourpicker)
   tagList(
-    box( width=12, title=h1('Setting',icon('cogs')),status = 'info',solidHeader = TRUE,collapsible = TRUE,
+    box( width=12, title=h1('Settings',icon('cogs')),status = 'info',solidHeader = TRUE,collapsible = TRUE,
 
       fluidRow(
         column(width=3, uiOutput(ns("choicesCondition"))),
@@ -23,7 +23,7 @@ mod_Replica_Quality_ui <- function(id){
       ),
     ),
     br(),br(),br(),br(),
-    box(width=12,title=h1('Heatmap',icon('chart-simple')),status = 'success',solidHeader = TRUE,height='800px',
+    box(width=12,title=h1('Heatmap',icon('chart-simple')),status = 'success',solidHeader = TRUE,
       br(),
       column(width=3,
       dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',
@@ -50,6 +50,7 @@ mod_Replica_Quality_server <- function(id,inputNorm){
     library(heatmaply)
 
     heatCondition <- reactive({
+      req(inputNorm$nb_facteu)
       num  = c()
       name = c()
 
@@ -113,7 +114,7 @@ mod_Replica_Quality_server <- function(id,inputNorm){
 
     # Fonction qui renvoie l'integralite des replicats de l'experience sous forme d'un selectInput
     output$keepingReplica <- renderUI({
-
+      req(inputNorm$exemple)
       if(inputNorm$exemple==0) { choix = heatReplica() }
       else {
         choix = c("Control R1", "Control R2", "Control R3", "Condition1 R1", "Condition1 R2", "Condition1 R3")
@@ -131,7 +132,7 @@ mod_Replica_Quality_server <- function(id,inputNorm){
     # Fonction qui creer une heatmap de distance après go de l'utilisateur
     heat<-eventReactive((input$goHeat | input$goHeat2),{
       validate(
-        need(input$selectKeep != "", "Please click on start")
+        need(input$selectKeep != "", " ")
       )
       withProgress(message = "Plotting heatMap ...", {
 
@@ -145,7 +146,7 @@ mod_Replica_Quality_server <- function(id,inputNorm){
         distance = dist(dataT, method = "euclidian")
         matrice = as.matrix(distance)
 
-        figure = heatmaply(matrice,colors=cols)%>% layout(height = 700, width = 800)
+        figure = heatmaply(matrice,colors=cols)
 
       })
 

@@ -1,6 +1,6 @@
 #' ORA UI Function
 #'
-#' @description A shiny Module.
+#' @description This module run Over Representation Analysis on GO terms.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
@@ -12,9 +12,6 @@ mod_ORA_ui <- function(id){
   tagList(
 
             uiOutput(ns('condPanel')),
-
-
-
   )
 }
 
@@ -26,6 +23,7 @@ mod_ORA_server <- function(id,inputParameter){
   moduleServer( id, function(input, output, session){
     library(shinycssloaders)
     library(plotly)
+
     ns <- session$ns
 
 # UI OUTPUT
@@ -35,8 +33,9 @@ mod_ORA_server <- function(id,inputParameter){
       LL=c()
 
       if(inputParameter$Gsea_ORA=='ORA' ){
-        LL[[1]]=fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA GO terms settings',icon('gear')),          
+        LL[[1]]=fluidRow(box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA GO terms Settings',icon('gear')),          
           fluidRow(
+            column(width=1),
             column(width=3,
               sliderInput(ns("pvalI"),label = "p-Value cutoff from input ",
                           min = 0, max =0.1, value = 0.05,step=0.01),
@@ -51,7 +50,7 @@ mod_ORA_server <- function(id,inputParameter){
               sliderInput(ns("pvalCutOff"),label = "p-Value cutoff from output ",
                       min = 0, max =0.1, value = 0.05,step=0.01)
             ),
-            column(width=3,
+            column(width=2,
               br(),br(),br(),br(),br(),br(),br(),br(),br(),
               actionButton(ns("go"),"Start",class="buttS",icon("play"))
             )
@@ -91,13 +90,7 @@ mod_ORA_server <- function(id,inputParameter){
       return(LL)
     })
     
-    # Fonction renvoyant à l'ui les différent GO terms significativement enrichi sous la forme d'un select input
-    output$pathId <- renderUI({
 
-      L= selectInput(ns('pathId'),"Select Path Id to observe" ,choices = choix())
-      return(L)
-
-    })
     # Fonction renvoyant à l'ui un slideerInput pour deteminer le nombre de categrories a afficher sur le dotPlot
     output$numberCategrory <- renderUI({
         numericInput(ns("numberCat"), min=1,value=min(5,nrow(tabb())),max=nrow(tabb()),label="Write number of category to show",width="20%")
@@ -115,16 +108,19 @@ mod_ORA_server <- function(id,inputParameter){
     geneList<-eventReactive(input$go,{
 
       req(inputParameter$fileOr)
+      req(inputParameter$orDb)
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
 
       df = read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism=inputParameter$orDb
-      if(inputParameter$ora_order=="overexpressed")   {df = subset(df, log2FC > 0)}
-      if(inputParameter$ora_order=="underexpressed")  {df = subset(df, log2FC < 0)}
+      if(inputParameter$ora_order=="overexpressed")   {df = subset(df, log2FoldChange > 0)}
+      if(inputParameter$ora_order=="underexpressed")  {df = subset(df, log2FoldChange < 0)}
    
-      library(organism, character.only = TRUE)
+     
       row.names(df) = df[,inputParameter$row.names]
       sig_genes_df = subset(df, padj < input$pvalI)
-      genes = sig_genes_df$log2FC
+      genes = sig_genes_df$log2FoldChange
       names(genes) = sig_genes_df[,inputParameter$row.names]
       genes = na.omit(genes)
       genes = names(genes)[abs(genes) > input$log2I]
@@ -159,15 +155,7 @@ mod_ORA_server <- function(id,inputParameter){
       colnames(table)=cbind('ID','Description','GeneRatio','BgRatio','pvalue','p.adjust','qvalue','geneID')
       return( data.frame(table))
     })
-    # Fonction renvoyant les différent GO terms significativement enrichi
-    choix <- reactive({
-      name=geneList()$ID
-      num  = c(1:length(name))
-      choiceTable = data.frame(name, num)
-      choix = setNames(as.numeric(choiceTable$num), choiceTable$name)
-      return(choix)
 
-    })
 # OUTPUT
 ## TABLE
     # Fonction renvoyant à l'ui le tableau de résultat d'enrichissement
@@ -200,7 +188,7 @@ mod_ORA_server <- function(id,inputParameter){
       ggplotly(barplot(geneList,
               drop = TRUE,
               showCategory = input$numberCat2,
-              title = "GO Biological Pathways",
+              title = "GO Pathways",
               font.size = 8))
 
     })
@@ -216,9 +204,3 @@ mod_ORA_server <- function(id,inputParameter){
 
   })
 }
-
-## To be copied in the UI
-# mod_ORA_ui("ORA_1")
-
-## To be copied in the server
-# mod_ORA_server("ORA_1")

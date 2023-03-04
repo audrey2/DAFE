@@ -10,6 +10,7 @@
 mod_Normalisation_AD_ui <- function(id){
   ns <- NS(id)
   library(shinyBS)
+
   tagList(
     box(width=12, status='info',title = h1('Settings',icon('cogs')),solidHeader = TRUE,collapsible=TRUE,
 
@@ -43,25 +44,28 @@ mod_Normalisation_AD_ui <- function(id){
       ),
     ),
   ),
-
-  tabBox(width=12,height="1200px",
+    fluidRow(
+  tabBox(width=12,height=NULL,
   id="tabBox",
     tabPanel("Plot ",
-
-      box(width=4, class="VIOLET",style='margin-bottom:10px;',status='success',title = h4('Boxplot of raw counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplot"))%>% withSpinner()),
-      box(width=4, class="VIOLET",style='margin-bottom:10px;',status='success',title = h4('Boxplot of normalized counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplotn"))%>% withSpinner()),
-      box(width=4, class="VIOLET",style='margin-bottom:10px;',status='success',title = h4('Graph of PCA',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("pcaVsd"))%>% withSpinner()),
-
+      fluidRow(
+      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Boxplot of raw counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplot"))%>% withSpinner())),
+      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Boxplot of normalized counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplotn"))%>% withSpinner())),
+      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Graph of PCA',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("pcaVsd"))%>% withSpinner())),
+      )
     ),
     tabPanel("Table",
-      box(width=12,class="GREEN",status='primary',title = h1('Table of normalized count',icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableNorm"))%>% withSpinner()),
-      box(width=12,class="GREEN",status='primary',title=h1("Table of differential analysis results",icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableResult"))%>% withSpinner()),
-
+      fluidRow(
+      column(width=12,box(width=NULL,class="GREEN",status='primary',title = h1('Table of normalized count',icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableNorm"))%>% withSpinner())),
+      column(width=12,box(width=NULL,class="GREEN",status='primary',title=h1("Table of differential analysis results",icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableResult"))%>% withSpinner())),
+        )
     ),
     tabPanel("Dispersion",
+      fluidRow(
        mod_Dispersion_analysis_ui("Dispersion_analysis_1")
+       )
     )
-  )
+  ))
 )
 }
 
@@ -70,6 +74,7 @@ mod_Normalisation_AD_ui <- function(id){
 #' @noRd
 mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
   library(DESeq2)
+  library(ggpubr)
   global<- reactiveValues()
 
   mod_Dispersion_analysis_server("Dispersion_analysis_1",TAB_RES,input)
@@ -96,7 +101,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
     heatCondition <- function(){
       num  = c()
       name = c()
-
+      req(inputInfo$nb_facteur)
       for (i in 1:inputInfo$nb_facteur) {
         num[i] = i
         name[i] = inputInfo[[paste0('condition', i)]]
@@ -122,12 +127,10 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
         colnames(data) = c('condition','count')
         data['count'] = as.numeric(unlist(data['count']))
         data['count'] = log10(data['count'])
-        yp = subset(data, log10(count)>0)
-        sts = boxplot.stats(yp$count)$stats
 
-        plot = ggplot(data, aes(x=condition, y=count)) +
-          geom_boxplot(outlier.shape = NA) +
-          coord_cartesian(ylim = c(sts[2]/2, max(sts)*1.05))
+
+        plot = ggboxplot(data, 'condition','count',col='condition',shape='condition')+rotate_x_text(45)
+          
 
       })
       return(plot)
@@ -151,8 +154,8 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
       withProgress(message = "Plotting Boxplot Normalized ...", {
         colnames(dataNorm) = c('condition', 'count')
         dataNorm['count'] = log10(dataNorm['count'])
-        plot = ggplot(dataNorm, aes(x = condition, y = count)) +
-          geom_boxplot()
+         plot = ggboxplot(dataNorm, 'condition','count',col='condition',shape='condition')+rotate_x_text(45)
+
 
         return(plot)
       })
@@ -166,7 +169,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
         vsd = varianceStabilizingTransformation(dds, blind = TRUE)
         data = plotPCA(vsd, intgroup = c("condition"), returnData = TRUE)
-        percentVar = round(100 * attr(a, "percentVar"))
+        percentVar = round(100 * attr(data, "percentVar"))
 
         plotPCA = ggplot(data, aes(PC1, PC2, color = condition)) +
           geom_point(size = 3) +
@@ -257,9 +260,3 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
 
 }
-
-## To be copied in the UI
-# mod_Normalisation_AD_ui("Normalisation_AD_1")
-
-## To be copied in the server
-# mod_Normalisation_AD_server("Normalisation_AD_1")

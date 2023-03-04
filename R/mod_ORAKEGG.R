@@ -27,6 +27,7 @@ mod_ORAKEGG_server <- function(id,inputParameter){
     library(shinyFiles)
     library(png)
     library(plotly)
+
     ns <- session$ns
 
 # UI OUTPUT
@@ -37,7 +38,7 @@ mod_ORAKEGG_server <- function(id,inputParameter){
       if(inputParameter$Gsea_ORA == 'ORA'){
 
         LL[[1]]=fluidRow(
-          box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA KEGG settings',icon('gear')),
+          box(width = 12,status = 'info',solidHeader = TRUE,collapsible=TRUE,title=h1('ORA KEGG Settings',icon('gear')),
             fluidRow(
               column(width=1),
               column(width=3,
@@ -119,7 +120,9 @@ mod_ORAKEGG_server <- function(id,inputParameter){
       return(L)
     })
 
-    PATHID<- reactive(input$pathiId)
+    PATHID<- reactive({
+      req(input$pathiId)
+      input$pathiId})
 
 
     shinyDirChoose(input, 'folder', root=c(root='~'), filetypes=c('png', 'txt'))
@@ -127,7 +130,7 @@ mod_ORAKEGG_server <- function(id,inputParameter){
 # FUNCTION 
     # Fonction renvoyant le dossier choisi par l'utilisateur
     pathway <- reactive({
-
+      req(input$folder)
       a="~"
       for( i in 1: length(input$folder)){
         a= paste0(a,input$folder$path[i],"/")
@@ -138,7 +141,8 @@ mod_ORAKEGG_server <- function(id,inputParameter){
 
     # Fonction renvoyant le nom de l'image correspondant au patway KEGG
     pathView<- reactive({
-
+      req(inputParameter)
+      req(inputParameter$orDb)
       dir=pathway()
       kegg_organism = switch(inputParameter$orDb,'org.Dm.eg.db'='dme','org.At.tair.db'='ath',
                            'org.Dr.eg.db'='dre','org.Ss.eg.db'='ssc','org.Cf.eg.db'='cfa',
@@ -148,12 +152,14 @@ mod_ORAKEGG_server <- function(id,inputParameter){
                            'org.Mm.eg.db'='mmu','org.Rn.eg.db'='rno','org.Bt.eg.db'='bta',
                            'org.Mmu.eg.db'='mvv','org.Xl.eg.db'='xla','org.Pf.plasmo.db'='pfa')
 
+      
       setwd(dir)
+
       pathview(gene.data=kge(), pathway.id=names(choix()[as.numeric(PATHID())]), species = kegg_organism, kegg.dir = dir)
 
       a=paste0(dir,names(choix()[as.numeric(PATHID())]))
       a=paste0(a,".pathview.png")
-      print(a)
+     
       return(a)
     })
 
@@ -191,35 +197,39 @@ mod_ORAKEGG_server <- function(id,inputParameter){
 
    kge<- eventReactive(input$go,{
        req(inputParameter$fileOr)
+      req(inputParameter$orDb)
+      BiocManager::install(inputParameter$orDb,update=FALSE)
+      library(inputParameter$orDb, character.only = TRUE)
 
       df=read.csv(inputParameter$fileOr[1,'datapath'], header=TRUE,sep=inputParameter$sep)
       organism=inputParameter$orDb
       if(inputParameter$ora_order=="overexpressed"){
-        df=subset(df,log2FC >0)
-        df=subset(df,padj< input$pvalI)
+        df=subset(df,log2FoldChange >0)
+        #df=subset(df,padj < input$pvalI)
       }
       if(inputParameter$ora_order=="underexpressed"){
-        df=subset(df,log2FC <0)
-        df=subset(df, padj < input$pvalI)
+        df=subset(df,log2FoldChange <0)
+        #df=subset(df, padj < input$pvalI)
       }
-      if(inputParameter$ora_order=="both"){ df=subset(df, padj < input$pvalI)}
+      if(inputParameter$ora_order=="both"){
+       #df=subset(df, padj < input$pvalI)
+     }
   
       df$X=df[,inputParameter$row.names]
       
    
-      library(organism, character.only = TRUE)
-      original_gene_list <- df$log2FC
+     
+      original_gene_list <- df$log2FoldChange
       names(original_gene_list) <- df[,inputParameter$row.names]
       ids<-bitr(names(original_gene_list), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb=organism)
-      dedup_ids = ids[!duplicated(ids[c("ENSEMBL")]),]
+      dedup_idsE = ids[!duplicated(ids[c("ENSEMBL")]),]
+      dedup_ids = dedup_idsE[!duplicated(dedup_idsE[c("ENTREZID")]),]
       df2 = df[df$X %in% dedup_ids$ENSEMBL,]
       df2$Y = dedup_ids$ENTREZID
-      kegg_gene_list <- df2$log2FC
+      kegg_gene_list <- df2$log2FoldChange
       names(kegg_gene_list) <- df2$Y
       kegg_gene_list<-na.omit(kegg_gene_list)
-      kegg_gene_list = sort(kegg_gene_list, decreasing = TRUE)
-      duplicated_names <- duplicated(names(kegg_gene_list))
-      kegg_gene_list=kegg_gene_list[!duplicated_names]
+   
       return(kegg_gene_list)
 
 
