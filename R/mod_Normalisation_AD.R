@@ -1,10 +1,10 @@
 #' Normalisation_AD UI Function
 #'
-#' @description A shiny Module.
+#' @description This module normalize counts  
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_Normalisation_AD_ui <- function(id){
@@ -16,12 +16,12 @@ mod_Normalisation_AD_ui <- function(id){
 
       fluidRow(
         column(width=3,
-          selectInput(ns("choixTest"),label=h4("Choose the test", bsButton(ns("q2"),label="",icon = icon("question"), style = "info", size = "extra-small")),choices=c("Wald","LRT")),
+          selectInput(ns("choixTest"),label=h5(strong("Choose the test"), bsButton(ns("q2"),label="",icon = icon("question"), style = "default", size = "extra-small")),choices=c("Wald","LRT")),
           bsTooltip(ns("q2"), title = "Hypothese Testing <br> Wald Test ( default) pairwise comparisons <br> LRT which is used to identify any genes that show change in expression across the different levels "),
         ),
         column(width=3,
-          selectInput(ns("choixFitType"),label=h4("Choose the Fit type",
-                                                  bsButton(ns("q1"), label = "", icon = icon("question"), style = "info", size = "extra-small"))
+          selectInput(ns("choixFitType"),label=h5(strong("Choose the Fit type"),
+                                                  bsButton(ns("q1"), label = "", icon = icon("question"), style = "default", size = "extra-small"))
 
 
                                                   ,choices=c('local','parametric','mean'),
@@ -35,7 +35,7 @@ mod_Normalisation_AD_ui <- function(id){
           uiOutput(ns("cond1")),
         ),
         column(width=3,
-          selectInput(ns("choixPadj"),label=h4("Choose the methode of padj", bsButton(ns("q3"),label="",icon = icon("question"), style = "info", size = "extra-small")), choices=c('holm', 'hochberg', 'hommel', 'bonferroni', 'BH', 'BY', 'fdr', 'none')),
+          selectInput(ns("choixPadj"),label=h5(strong("Choose the methode of padj"), bsButton(ns("q3"),label="",icon = icon("question"), style = "default", size = "extra-small")), choices=c('holm', 'hochberg', 'hommel', 'bonferroni', 'BH', 'BY', 'fdr', 'none')),
           bsTooltip(ns("q3"),title="the method to use for adjusting pvalue")
         ),
       column(width=9),
@@ -49,16 +49,36 @@ mod_Normalisation_AD_ui <- function(id){
   id="tabBox",
     tabPanel("Plot ",
       fluidRow(
-      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Boxplot of raw counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplot"))%>% withSpinner())),
-      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Boxplot of normalized counts',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("boxplotn"))%>% withSpinner())),
-      column(width=4,box(width=NULL, class="VIOLET",style='margin-bottom:10px;',status='success',title = h2('Graph of PCA',icon('chart-simple')),solidHeader = TRUE,plotlyOutput(ns("pcaVsd"))%>% withSpinner())),
+      column(width=4,
+        box(width=NULL,status='success',title = h2('Boxplot of raw counts',icon('chart-simple')),solidHeader = TRUE,
+          plotlyOutput(ns("boxplot"))%>% withSpinner(color="#CDCDE6")
+        )
+      ),
+      column(width=4,
+        box(width=NULL,status='success',title = h2('Boxplot of normalized counts',icon('chart-simple')),solidHeader = TRUE,
+          plotlyOutput(ns("boxplotn"))%>% withSpinner(color="#CDCDE6")
+        )
+      ),
+      column(width=4,
+        box(width=NULL,status='success',title = h2('Graph of PCA',icon('chart-simple')),solidHeader = TRUE,
+          plotlyOutput(ns("pcaVsd"))%>% withSpinner(color="#CDCDE6")
+        )
+      ),
       )
     ),
     tabPanel("Table",
       fluidRow(
-      column(width=12,box(width=NULL,class="GREEN",status='primary',title = h1('Table of normalized count',icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableNorm"))%>% withSpinner())),
-      column(width=12,box(width=NULL,class="GREEN",status='primary',title=h1("Table of differential analysis results",icon('table')),solidHeader = TRUE, DT::dataTableOutput(ns("tableResult"))%>% withSpinner())),
-        )
+      column(width=12,
+        box(width=NULL,class="GREEN",status='primary',title = h1('Table of normalized count',icon('table')),solidHeader = TRUE, 
+          DT::dataTableOutput(ns("tableNorm"))%>% withSpinner(color="#605CA8")
+          )
+      ),
+      column(width=12,
+        box(width=NULL,class="GREEN",status='primary',title=h1("Table of differential analysis results",icon('table')),solidHeader = TRUE, 
+          DT::dataTableOutput(ns("tableResult"))%>% withSpinner(color="#605CA8")
+        ),
+      )
+      )
     ),
     tabPanel("Dispersion",
       fluidRow(
@@ -90,7 +110,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
       choix=heatCondition()
       L=c()
-      L[[1]]= selectInput(ns("selectCond1"), label = h4("Choose condition to observe"),
+      L[[1]]= selectInput(ns("selectCond1"), label = h5(strong("Choose condition to observe")),
                           choices = choix[2:length(choix)],
                           selected=1)
 
@@ -117,7 +137,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
     # Fonction renvoyant le boxplot des comptages brutes
     boxPlot <- eventReactive(input$goPlot, {
 
-      withProgress(message = "Plotting brut boxplot ...",{
+      
         data = tabData(inputInfo)
         data = data[, as.numeric(inputReplicat$selectKeep) + 1]
         data = melt(data)
@@ -130,9 +150,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
 
         plot = ggboxplot(data, 'condition','count',col='condition',shape='condition')+rotate_x_text(45)
-          
 
-      })
       return(plot)
     })
 
@@ -143,29 +161,29 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
       dds = DDS
 
-      withProgress(message = "Normalization ...",{
+
         dds2 = estimateSizeFactors(dds)
         normalized_counts = counts(dds2, normalized = TRUE)
-      })
+
 
       dataNorm = melt(normalized_counts)
       dataNorm = dataNorm[c(2,3)]
 
-      withProgress(message = "Plotting Boxplot Normalized ...", {
+   
         colnames(dataNorm) = c('condition', 'count')
         dataNorm['count'] = log10(dataNorm['count'])
          plot = ggboxplot(dataNorm, 'condition','count',col='condition',shape='condition')+rotate_x_text(45)
 
 
         return(plot)
-      })
+
     })
 
     # Fonction renvoyant le plot de l'ACP par une transforme VST des comptages normalises
     pcaVSD <- eventReactive(input$goPlot,{
 
       dds = DDS
-      withProgress(message = "Plotting PCA plot ...", {
+
 
         vsd = varianceStabilizingTransformation(dds, blind = TRUE)
         data = plotPCA(vsd, intgroup = c("condition"), returnData = TRUE)
@@ -177,7 +195,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
           ylab(paste0("PC2: ", percentVar[2], "% variance"))
 
         return(plotPCA)
-      })
+
     })
 
 
@@ -191,7 +209,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
 
     #Fonction renvoyant la table des comptages normalisés
     tabNorm <-eventReactive(input$goPlot,{
-      withProgress(message = "Normalization ...", {
+
 
         factor = estimateSizeFactors(DDS)
         normTable = counts(factor, normalized = TRUE)
@@ -200,7 +218,7 @@ mod_Normalisation_AD_server <- function(id,inputInfo,inputReplicat,DDS,TAB_RES){
         rownames(normTable) = NULL
 
         return(normTable)
-      })
+
     })
 
 

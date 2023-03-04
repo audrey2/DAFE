@@ -1,10 +1,10 @@
 #' Input_Norm UI Function
 #'
-#' @description A shiny Module.
+#' @description This module displays parameter for differential Analysis
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_Input_Norm_ui <- function(id){

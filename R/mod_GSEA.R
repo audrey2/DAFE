@@ -4,7 +4,7 @@
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_GSEA_ui <- function(id){
@@ -60,7 +60,7 @@ mod_GSEA_server <- function(id,inputParameter){
             fluidRow(
               column(width=12,
                 box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                  DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                  DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
                 )
               )
             )
@@ -70,13 +70,13 @@ mod_GSEA_server <- function(id,inputParameter){
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                   uiOutput(ns('numberCategory')),
-                  plotlyOutput(ns('dotplot'))%>% withSpinner()
+                  plotlyOutput(ns('dotplot'))%>% withSpinner(color="#CDCDE6")
                 )
               ),
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('GSEAplot',icon('chart-simple')),
                   uiOutput(ns('pathId')),
-                  plotOutput(ns('gseaplot'))%>% withSpinner()
+                  plotOutput(ns('gseaplot'))%>% withSpinner(color="#CDCDE6")
                 )
               )
             )

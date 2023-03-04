@@ -1,10 +1,10 @@
 #' Replica_Quality UI Function
 #'
-#' @description A shiny Module.
+#' @description This module run control quality on Replica.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_Replica_Quality_ui <- function(id){
@@ -26,13 +26,13 @@ mod_Replica_Quality_ui <- function(id){
     box(width=12,title=h1('Heatmap',icon('chart-simple')),status = 'success',solidHeader = TRUE,
       br(),
       column(width=3,
-      dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',
+      dropdownButton(inline=TRUE,icon = icon('gear'),status = 'infos',
                      tags$h3("Personnalize"),
-                     column(width=12, colourInput(ns("col1"), "Choose first color","#ade6f4")),
-                     column(width=12, colourInput(ns("col2"), "Choose second color","#45d7b7")),
+                     column(width=12, colourInput(ns("col1"), "Choose first color","#CDCDE6")),
+                     column(width=12, colourInput(ns("col2"), "Choose second color","#605CA8")),
                      actionButton(ns("goHeat2"),"Start",class="buttS",icon("play")))),
       br(),
-      column(width=6,      plotlyOutput(ns("heatMap"))),
+      column(width=6,      plotlyOutput(ns("heatMap"))%>% withSpinner(color="#CDCDE6")),
       column(width=3)
     )
   )
@@ -134,21 +134,20 @@ mod_Replica_Quality_server <- function(id,inputNorm){
       validate(
         need(input$selectKeep != "", " ")
       )
-      withProgress(message = "Plotting heatMap ...", {
+     
 
         chosenReplica = as.numeric(input$selectKeep) +1
         data = tabData(inputNorm)[, chosenReplica]
 
         dataT = t(data.frame(data))
-        print(input$col1)
-        print(input$col2)
-        cols = colorRampPalette(c(input$col1, input$col2))(7)
+
+        cols = colorRampPalette(c(input$col1, input$col2))(10)
         distance = dist(dataT, method = "euclidian")
         matrice = as.matrix(distance)
 
         figure = heatmaply(matrice,colors=cols)
 
-      })
+    
 
       return(figure)
     })

@@ -51,29 +51,30 @@ mod_ORAReactome_server <- function(id,inputParameter){
           tabPanel("Table",fluidRow(
             column(width=12,
               box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
               )
             )
           )),
-          tabPanel("Plot",fluidRow(
+          tabPanel("Plot",
+            fluidRow(
             column(width=12,
-              box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
+            box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
                   uiOutput(ns('pathIdd')),
                   uiOutput(ns('titlePath')),
-                 plotOutput(ns('pathwayR'))%>% withSpinner()
-            ),
+                 plotOutput(ns('pathwayR'))%>% withSpinner(color="#CDCDE6")
+            )),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                 uiOutput(ns('numberCategrory')),
-                plotlyOutput(ns('dotplotR'))%>% withSpinner()
+                plotlyOutput(ns('dotplotR'))%>% withSpinner(color="#CDCDE6")
               )
             ),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Barplot',icon('chart-simple')),
                 uiOutput(ns('numberCategrory2')),
-                plotlyOutput(ns('barplotR'))%>% withSpinner()
+                plotlyOutput(ns('barplotR'))%>% withSpinner(color="#CDCDE6")
               )
-            )
+            
             
             )
           ))

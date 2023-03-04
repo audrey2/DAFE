@@ -1,10 +1,10 @@
 #' GSEAReactome UI Function
 #'
-#' @description This module run Over Representation Analysis on Reactome pathway.
+#' @description This module runs Over Representation Analysis on Reactome pathway.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_GSEAReactome_ui <- function(id){
@@ -45,12 +45,12 @@ mod_GSEAReactome_server <- function(id,inputParameter){
             )
           )
         ))
-        LL[[3]] = fluidRow( tabBox(width=12,height=NULL,
+        LL[[2]] = fluidRow( tabBox(width=12,height=NULL,
           tabPanel("Table",
             fluidRow(
               column(width=12,
                 box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                  DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                  DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
                 )
               )
             )
@@ -61,19 +61,19 @@ mod_GSEAReactome_server <- function(id,inputParameter){
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Reactome pathway',icon('chart-simple')),
                   uiOutput(ns('pathIdd2')),
                   uiOutput(ns('titlePath')),
-                  plotOutput(ns('pathwayR'))%>% withSpinner()
+                  plotOutput(ns('pathwayR'))%>% withSpinner(color="#CDCDE6")
                 )
               ),
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                   uiOutput(ns('numberCategory')),
-                  plotlyOutput(ns('dotplotR'))%>% withSpinner()
+                  plotlyOutput(ns('dotplotR'))%>% withSpinner(color="#CDCDE6")
                 )
               ),
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('GSEAplot',icon('chart-simple')),
                   uiOutput(ns('pathIdd')),
-                  plotOutput(ns('gseaplotR'))%>% withSpinner()
+                  plotOutput(ns('gseaplotR'))%>% withSpinner(color="#CDCDE6")
                 )
               )
             )

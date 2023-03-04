@@ -1,10 +1,10 @@
 #' ORA UI Function
 #'
-#' @description This module run Over Representation Analysis on GO terms.
+#' @description This module runs Over Representation Analysis on GO terms.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_ORA_ui <- function(id){
@@ -61,7 +61,7 @@ mod_ORA_server <- function(id,inputParameter){
             fluidRow(
               column(width=12,
                 box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                  DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                  DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
                 )
               )
             )
@@ -70,18 +70,18 @@ mod_ORA_server <- function(id,inputParameter){
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                 uiOutput(ns('numberCategrory')),
-                plotlyOutput(ns('dotplot'))%>% withSpinner()
+                plotlyOutput(ns('dotplot'))%>% withSpinner(color="#CDCDE6")
               )
             ),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Barplot',icon('chart-simple')),
                 uiOutput(ns('numberCategrory2')),
-                plotlyOutput(ns('barplot'))%>% withSpinner()
+                plotlyOutput(ns('barplot'))%>% withSpinner(color="#CDCDE6")
               )
             ),
             column(width=6,
               box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Goplot',icon('chart-simple')),
-                plotlyOutput(ns('goplot'))%>% withSpinner()
+                plotlyOutput(ns('goplot'))%>% withSpinner(color="#CDCDE6")
               )
             )
           ))

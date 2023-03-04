@@ -1,10 +1,10 @@
 #' ORAKEGG UI Function
 #'
-#' @description This module run Over Representation Analysis on KEGG pathway.
+#' @description This module runs Over Representation Analysis on KEGG pathway.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_ORAKEGG_ui <- function(id){
@@ -69,7 +69,7 @@ mod_ORAKEGG_server <- function(id,inputParameter){
               fluidRow(
                 column(width=12,
                   box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                     DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                     DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
                   )
                 )
               )
@@ -79,19 +79,19 @@ mod_ORAKEGG_server <- function(id,inputParameter){
                 column(width=12,
                   box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('KEGG pathway',icon('chart-simple')),
                     uiOutput(ns('pathIdd')),
-                    plotlyOutput(ns('png'))%>% withSpinner()
+                    plotlyOutput(ns('png'))%>% withSpinner(color="#CDCDE6")
                   )
                 ),
                 column(width=6,
                   box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                     uiOutput(ns('numberCategrory')),
-                    plotlyOutput(ns('dotplotK'))%>% withSpinner(),
+                    plotlyOutput(ns('dotplotK'))%>% withSpinner(color="#CDCDE6"),
                   )
                 ),
                 column(width=6,
                   box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Barplot',icon('chart-simple')),
                       uiOutput(ns('numberCategrory2')),
-                      plotlyOutput(ns('barplotK'))%>% withSpinner()
+                      plotlyOutput(ns('barplotK'))%>% withSpinner(color="#CDCDE6")
                   )
                 )
               )

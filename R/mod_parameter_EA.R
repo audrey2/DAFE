@@ -1,10 +1,10 @@
 #' parameter_EA UI Function
 #'
-#' @description A shiny Module.
+#' @description This module displays parameter for Enrichment Analysis
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_parameter_EA_ui <- function(id){

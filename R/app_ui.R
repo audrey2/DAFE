@@ -3,7 +3,7 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @noRd
+#' @author Audrey BEAUFILS
 
 app_ui <- function(request) {
   library(shinydashboard)
@@ -13,12 +13,10 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # List the first level UI elements here
     dashboardPage(skin="purple",
-      dashboardHeader(tags$li(class = "dropdown",
-                              tags$style(".main-header {max-height: 100px}"),
-                              tags$style(".main-header .logo {height: 100px}")),
+      dashboardHeader(
 
 
-        title = h3(HTML("Analyse différentielle et <br/>Enrichissement fonctionnel")),titleWidth = 275
+        title = h3(strong(HTML("DAFE"))),titleWidth = 275
 
       ),
       dashboardSidebar(
@@ -49,22 +47,39 @@ app_ui <- function(request) {
                 background:#CDCDE6;
               }
               .box.box-solid.box-info{
-                border-bottom-color:#666666;
-                border-left-color:#666666;
-                border-right-color:#666666;
-                border-top-color:#666666;
+                border-bottom-color:#605CA8;
+                border-left-color:#605CA8;
+                border-right-color:#605CA8;
+                border-top-color:#605CA8;
               }
+
               .box.box-solid.box-success>.box-header {
                 color:#ffffff;
                 background:#605CA8;
               }
               .box.box-solid.box-success{
-                border-bottom-color:#666666;
-                border-left-color:#666666;
-                border-right-color:#666666;
-                border-top-color:#666666;
+                border-bottom-color:#605CA8;
+                border-left-color:#605CA8;
+                border-right-color:#605CA8;
+                border-top-color:#605CA8;
+
               }
-            ")),
+
+              .progress-bar {
+                background-color: #CDCDE6;
+              }
+              
+              .btn-default {
+                  background-color: #CDCDE6;
+                  color: #605CA8;
+                  border-color: #ddd;
+              }
+
+              .nav-tabs-custom>.nav-tabs>li.active {
+                border-top-color: #605CA8;
+              }
+        ")),
+        setSliderColor(rep("#605CA8",50), c(1:50)),
         tabItems(
           tabItem(tabName="home",
                   mod_home_ui("home_1")

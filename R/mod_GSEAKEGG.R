@@ -4,7 +4,7 @@
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_GSEAKEGG_ui <- function(id){
@@ -63,7 +63,7 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
             fluidRow(
               column(width=12,
                 box(width = NULL,status = 'primary',solidHeader = TRUE,title=h1('Table of results',icon('table')),
-                   DT::dataTableOutput(ns('tableau'))%>% withSpinner()
+                   DT::dataTableOutput(ns('tableau'))%>% withSpinner(color="#605CA8")
                 )
               )
             )
@@ -73,19 +73,19 @@ mod_GSEAKEGG_server <- function(id,inputParameter){
               column(width=12,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('KEGG pathway',icon('chart-simple')),
                     column(width=3,uiOutput(ns('pathIdd'))),
-                    column(width=6,plotlyOutput(ns('png'))%>% withSpinner())
+                    column(width=6,plotlyOutput(ns('png'))%>% withSpinner(color="#CDCDE6"))
                 )
               ),
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('Dotplot',icon('chart-simple')),
                   uiOutput(ns('numberCategrorie')),
-                  plotlyOutput(ns('dotplotKegg'))%>% withSpinner(),
+                  plotlyOutput(ns('dotplotKegg'))%>% withSpinner(color="#CDCDE6"),
                 )
               ),
               column(width=6,
                 box(width = NULL,status = 'success',solidHeader = TRUE,title=h1('KEGG GSEAplot',icon('chart-simple')),
                     uiOutput(ns('pathIdd2')),
-                    plotOutput(ns('gseaplotKegg'))%>% withSpinner()
+                    plotOutput(ns('gseaplotKegg'))%>% withSpinner(color="#CDCDE6")
                 )
               )
             ),

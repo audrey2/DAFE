@@ -1,10 +1,10 @@
 #' Dispersion_analysis UI Function
 #'
-#' @description A shiny Module.
+#' @description This module runs Dispersions analysis
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#' @noRd
+#' @author Audrey BEAUFILS
 #'
 #' @importFrom shiny NS tagList
 mod_Dispersion_analysis_ui <- function(id){
@@ -14,7 +14,7 @@ mod_Dispersion_analysis_ui <- function(id){
       box(width=NULL,status='success',solidHeader=TRUE,title=h1("Volcano Plot",icon('chart-simple')),
         fluidRow(
           column(width=1,
-            dropdownButton(inline=TRUE,icon = icon('gear'),status = 'warning',width="300px",
+            dropdownButton(inline=TRUE,icon = icon('gear'),status = 'infos',width="300px",
               tags$h3("Option of treshold"),
               sliderInput(ns("ts_FC"), label = "log2 FoldChange  cutoff from input",
                         min = 0, max = 5, value = 1,step=0.1),
@@ -23,14 +23,14 @@ mod_Dispersion_analysis_ui <- function(id){
             )
           ),
           column(width=11,
-            plotlyOutput(ns("volcano"))%>% withSpinner()
+            plotlyOutput(ns("volcano"))%>% withSpinner(color="#CDCDE6")
           )
         )
       )
     ),
     column(width=6, 
       box(width=NULL,status='success',solidHeader=TRUE,title=h1("MA plot",icon('chart-simple')),
-        plotlyOutput(ns("maplot"))%>% withSpinner()
+        plotlyOutput(ns("maplot"))%>% withSpinner(color="#CDCDE6")
       ),
     ),
     column(width=12,

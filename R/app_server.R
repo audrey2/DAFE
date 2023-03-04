@@ -3,7 +3,7 @@
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @noRd
+#'@author Audrey BEAUFILS
 app_server <- function(input, output, session) {
 
 
@@ -101,6 +101,8 @@ app_server <- function(input, output, session) {
       return(table)
     })
   })
+
+  mod_home_server("home_1")
   inputInfo=mod_Input_Norm_server("Input_Norm_1")
   inputReplicat=mod_Replica_Quality_server("Replica_Quality_1",inputInfo)
   inputNorm=mod_Normalisation_AD_server("Normalisation_AD_1",inputInfo,inputReplicat,DDS(),tabRes())
